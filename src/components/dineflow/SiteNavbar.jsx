@@ -250,11 +250,15 @@ export default function SiteNavbar({ variant = 'light' }) {
             <button
               type="button"
               className={`lp-nav-menu-btn ${isDark ? 'lp-nav-menu-btn--dark' : 'lp-nav-menu-btn--light'} ${open ? 'is-open' : ''}`}
-              onClick={() => setOpen((v) => !v)}
+              onClick={() => (open ? closeMenu() : setOpen(true))}
               aria-label={open ? 'Close menu' : 'Open menu'}
               aria-expanded={open}
             >
-              {open ? <FiX size={22} /> : <FiMenu size={22} />}
+              {open ? (
+                <FiX size={24} strokeWidth={2.5} className="lp-nav-menu-btn-icon lp-nav-menu-btn-icon--close" aria-hidden />
+              ) : (
+                <FiMenu size={22} strokeWidth={2} className="lp-nav-menu-btn-icon" aria-hidden />
+              )}
             </button>
           </div>
         </div>
@@ -262,12 +266,7 @@ export default function SiteNavbar({ variant = 'light' }) {
         {/* Mobile drawer */}
         {open && (
           <>
-            <button
-              type="button"
-              className="lp-nav-mobile-backdrop"
-              aria-label="Close menu"
-              onClick={closeMenu}
-            />
+            <div className="lp-nav-mobile-backdrop" aria-hidden />
             <div className={`lp-nav-mobile-panel ${isDark ? 'lp-nav-mobile-panel--dark' : 'lp-nav-mobile-panel--light'}`}>
               {/* Book Now + Sign in — always at top on mobile */}
               <div className="lp-nav-mobile-actions lp-nav-mobile-actions--primary">

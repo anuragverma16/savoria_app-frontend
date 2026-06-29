@@ -585,7 +585,7 @@ select option { background-color: #fff; color: #0a0a0a; }
   justify-content: flex-end;
   flex-shrink: 0;
   position: relative;
-  z-index: 70;
+  z-index: 80;
   margin-left: auto;
 }
 
@@ -814,34 +814,61 @@ select option { background-color: #fff; color: #0a0a0a; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   border-radius: 0.75rem;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(255, 255, 255, 0.85);
   color: #0f172a;
-  transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  transition: background 0.2s, border-color 0.2s, transform 0.2s, color 0.2s;
+  cursor: pointer;
 }
+
+.lp-nav-menu-btn-icon {
+  flex-shrink: 0;
+  transition: transform 0.25s ease, opacity 0.2s ease;
+}
+
+.lp-nav-menu-btn-icon--close {
+  transform: rotate(0deg);
+  animation: lp-nav-close-in 0.22s ease-out;
+}
+
+@keyframes lp-nav-close-in {
+  from {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(0deg) scale(1);
+  }
+}
+
 .lp-nav-menu-btn--dark {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
   color: #fff;
 }
+
 .lp-nav-menu-btn--light {
   border-color: rgba(15, 23, 42, 0.1);
   background: rgba(255, 255, 255, 0.9);
   color: #0f172a;
 }
+
 .lp-nav-menu-btn.is-open {
-  background: rgba(249, 115, 22, 0.15);
-  border-color: rgba(249, 115, 22, 0.45);
-  color: #ea580c;
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #ef4444;
 }
+
 .lp-nav-menu-btn--dark.is-open {
-  color: #fbbf24;
-  border-color: rgba(251, 191, 36, 0.5);
-  background: rgba(251, 191, 36, 0.12);
+  color: #fca5a5;
+  border-color: rgba(248, 113, 113, 0.65);
+  background: rgba(239, 68, 68, 0.18);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
 }
 
 .lp-premium-nav--menu-open {
@@ -852,10 +879,9 @@ select option { background-color: #fff; color: #0a0a0a; }
   position: fixed;
   inset: 0;
   z-index: 60;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(4px);
-  border: none;
-  cursor: pointer;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  pointer-events: none;
 }
 
 .lp-nav-mobile-panel {
