@@ -18,38 +18,80 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (res) => res,
+  (response) => response,
+
   async (error) => {
-    const suspendedMsg = error.response?.data?.message === 'Restaurant suspended by super admin'
-    if (error.response?.status === 403 && suspendedMsg) {
-      const tenant = JSON.parse(localStorage.getItem('dineflow_tenant') || 'null')
-      const name = tenant?.name ? encodeURIComponent(tenant.name) : ''
-      const target = name ? `/restaurant-suspended?name=${name}` : '/restaurant-suspended'
-      if (!window.location.pathname.startsWith('/restaurant-suspended')) {
-        window.location.assign(target)
-      }
+    // Network error
+    if (!error.response) {
+      console.error('Network Error:', error.message)
       return Promise.reject(error)
     }
 
-    if (error.response?.status === 401) {
-      const auth = JSON.parse(localStorage.getItem('dineflow_auth') || '{}')
-      if (auth.refreshToken && !error.config._retry) {
-        error.config._retry = true
+    // Restaurant suspended
+    const suspended =
+      error.response.status === 403 &&
+      error.response.data?.message ===
+        'Restaurant suspended by super admin'
+
+    if (suspended) {
+      const tenant = JSON.parse(
+        localStorage.getItem('dineflow_tenant') || 'null'
+      )
+
+      const name = tenant?.name
+        ? encodeURIComponent(tenant.name)
+        : ''
+
+      const target = name
+        ? `/restaurant-suspended?name=${name}`
+        : '/restaurant-suspended'
+
+      if (!window.location.pathname.startsWith('/restaurant-suspended')) {
+        window.location.assign(target)
+      }
+
+      return Promise.reject(error)
+    }
+
+    // Refresh Access Token
+    if (
+      error.response.status === 401 &&
+      !error.config._retry
+    ) {
+      error.config._retry = true
+
+      const auth = JSON.parse(
+        localStorage.getItem('dineflow_auth') || '{}'
+      )
+
+      if (auth.refreshToken) {
         try {
-          const { data } = await axios.post('/api/auth/refresh', { refreshToken: auth.refreshToken })
-          localStorage.setItem('dineflow_auth', JSON.stringify({
-            ...auth,
-            accessToken: data.accessToken,
-            refreshToken: data.refreshToken,
-          }))
-          error.config.headers.Authorization = `Bearer ${data.accessToken}`
+          const { data } = await api.post('/auth/refresh', {
+            refreshToken: auth.refreshToken,
+          })
+
+          localStorage.setItem(
+            'dineflow_auth',
+            JSON.stringify({
+              ...auth,
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+            })
+          )
+
+          error.config.headers = error.config.headers || {}
+          error.config.headers.Authorization =
+            `Bearer ${data.accessToken}`
+
           return api(error.config)
-        } catch {
+        } catch (refreshError) {
           localStorage.removeItem('dineflow_auth')
-          window.location.href = '/login'
+          window.location.replace('/login')
+          return Promise.reject(refreshError)
         }
       }
     }
+
     return Promise.reject(error)
   }
 )
