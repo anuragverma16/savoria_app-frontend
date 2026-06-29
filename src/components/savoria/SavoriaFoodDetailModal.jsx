@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { FiX, FiMinus, FiPlus, FiStar } from 'react-icons/fi'
 import { GiChiliPepper } from 'react-icons/gi'
 import toast from 'react-hot-toast'
+import OptimizedImage from '../OptimizedImage'
 
 export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
   const [qty, setQty] = useState(1)
@@ -48,7 +49,7 @@ export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
 
             <div className="overflow-y-auto max-h-[92dvh] md:max-h-[85vh]">
               <div className="relative aspect-[16/10]">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                <OptimizedImage src={item.image} alt={item.name} width={640} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--sv-surface-solid)] via-transparent to-transparent" />
               </div>
 

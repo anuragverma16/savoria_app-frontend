@@ -11,6 +11,7 @@ export default function NavbarProfileMenu({
   fullName,
   email,
   isDark,
+  mobile = false,
 }) {
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
@@ -18,6 +19,7 @@ export default function NavbarProfileMenu({
   const guestAuth = useSavoriaGuestOptional()
 
   useEffect(() => {
+    if (mobile) return undefined
     const onDoc = (e) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target)) {
         setOpen(false)
@@ -25,12 +27,38 @@ export default function NavbarProfileMenu({
     }
     document.addEventListener('mousedown', onDoc)
     return () => document.removeEventListener('mousedown', onDoc)
-  }, [])
+  }, [mobile])
 
   const handleLogout = () => {
     setOpen(false)
     guestAuth?.logoutGuest()
     navigate('/')
+  }
+
+  if (mobile) {
+    return (
+      <div className={`lp-nav-profile-mobile ${isDark ? 'lp-nav-profile-mobile--dark' : ''}`}>
+        <div className="lp-nav-profile-menu-head">
+          <span className="lp-nav-profile-menu-avatar">{profileInitials}</span>
+          <div className="min-w-0">
+            <p className="lp-nav-profile-menu-name">{fullName || profileName}</p>
+            {email ? <p className="lp-nav-profile-menu-email">{email}</p> : null}
+          </div>
+        </div>
+        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+          <FiGrid size={18} /> Dashboard
+        </Link>
+        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+          <FiUser size={18} /> My details
+        </Link>
+        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+          <FiSettings size={18} /> Settings
+        </Link>
+        <button type="button" className="lp-nav-mobile-menu-item lp-nav-mobile-menu-logout" onClick={handleLogout}>
+          <FiLogOut size={18} /> Logout
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -61,25 +89,13 @@ export default function NavbarProfileMenu({
             </div>
           </div>
           <div className="lp-nav-profile-menu-divider" />
-          <Link
-            to={DASHBOARD}
-            className="lp-nav-profile-menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiGrid size={16} /> Dashboard
           </Link>
-          <Link
-            to={DASHBOARD}
-            className="lp-nav-profile-menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiUser size={16} /> My details
           </Link>
-          <Link
-            to={DASHBOARD}
-            className="lp-nav-profile-menu-item"
-            onClick={() => setOpen(false)}
-          >
+          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiSettings size={16} /> Settings
           </Link>
           <div className="lp-nav-profile-menu-divider" />

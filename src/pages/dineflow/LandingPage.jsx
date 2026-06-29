@@ -12,6 +12,7 @@ import SpoonLogo from '../../components/dineflow/SpoonLogo'
 import { useLandingGsap } from '../../hooks/useLandingGsap'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
 import { publicAPI } from '../../api/dineflow'
+import OptimizedImage from '../../components/OptimizedImage'
 import {
   showContactErrorToast,
   showContactSentToast,
@@ -20,32 +21,32 @@ import {
 
 const ORDER_ENTRY = '/order/tables?scan=1'
 
-/** Unique image per slot — no duplicates anywhere on the landing page */
+/** Optimized images — Unsplash CDN with webp + smaller widths */
 const BURGER_HD =
-  'https://i.pinimg.com/1200x/24/3b/84/243b84a0b420290d9832a60eff0842ff.jpg'
+  'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=72&auto=format&fit=crop'
 const NOODLES_IMG =
-  'https://i.pinimg.com/736x/b7/5a/9e/b75a9ec5e790d350f78e09a24fab538f.jpg'
+  'https://images.unsplash.com/photo-1569718214665-38fae59bee0a?w=800&q=72&auto=format&fit=crop'
 
 const FOOD = {
-  fallback: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=90&auto=format&fit=crop',
-  hero: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=90&auto=format&fit=crop',
-  heroPizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=90&fit=crop',
+  fallback: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=72&auto=format&fit=crop',
+  hero: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1280&q=72&auto=format&fit=crop',
+  heroPizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=72&auto=format&fit=crop',
   heroNoodles: NOODLES_IMG,
-  galleryPizza: 'https://images.unsplash.com/photo-1565299624946-b28f40a7ca7f?w=1200&q=90&fit=crop',
+  galleryPizza: 'https://images.unsplash.com/photo-1565299624946-b28f40a7ca7f?w=800&q=72&auto=format&fit=crop',
   galleryBurger: BURGER_HD,
-  galleryPasta: 'https://images.unsplash.com/photo-1473093290779-441010016dd3?w=900&q=90&fit=crop',
-  galleryWings: 'https://images.unsplash.com/photo-1626082897516-8afb70ce5d3a?w=900&q=90&fit=crop',
-  galleryTacos: 'https://images.unsplash.com/photo-1565299585325-38d6e1552959?w=900&q=90&fit=crop',
-  gallerySteak: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=900&q=90&fit=crop',
-  galleryDessert: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=900&q=90&fit=crop',
-  galleryRamen: 'https://images.unsplash.com/photo-1569718214665-38fae59bee0a?w=900&q=90&fit=crop',
-  diningRoom: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=90&fit=crop',
-  kitchen: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=90&fit=crop',
-  spread: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=90&fit=crop',
-  rooftop: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=90&fit=crop',
-  contact: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=90&auto=format&fit=crop',
-  cta: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1920&q=90&auto=format&fit=crop',
-  videoPoster: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=1920&q=90&fit=crop',
+  galleryPasta: 'https://images.unsplash.com/photo-1473093290779-441010016dd3?w=800&q=72&auto=format&fit=crop',
+  galleryWings: 'https://images.unsplash.com/photo-1626082897516-8afb70ce5d3a?w=800&q=72&auto=format&fit=crop',
+  galleryTacos: 'https://images.unsplash.com/photo-1565299585325-38d6e1552959?w=800&q=72&auto=format&fit=crop',
+  gallerySteak: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=72&auto=format&fit=crop',
+  galleryDessert: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=72&auto=format&fit=crop',
+  galleryRamen: NOODLES_IMG,
+  diningRoom: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=72&auto=format&fit=crop',
+  kitchen: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=72&auto=format&fit=crop',
+  spread: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=72&auto=format&fit=crop',
+  rooftop: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=72&auto=format&fit=crop',
+  contact: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1280&q=72&auto=format&fit=crop',
+  cta: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1280&q=72&auto=format&fit=crop',
+  videoPoster: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=1280&q=72&auto=format&fit=crop',
   demoVideo: '/videos/add-video.mp4',
 }
 
@@ -87,20 +88,21 @@ const PLANS = [
   { name: 'Enterprise', price: 'Custom', period: '', features: ['Multi-location', 'API', 'Priority support', 'Branding'], accent: 'from-lime-600 to-green-700' },
 ]
 
-function HdImg({ src, alt, className = '', eager = false }) {
+function HdImg({ src, alt, className = '', eager = false, width = 800, fullWidth = false }) {
   return (
-    <img
+    <OptimizedImage
       src={src}
       alt={alt}
-      loading={eager ? 'eager' : 'lazy'}
-      decoding="async"
-      referrerPolicy="no-referrer"
       className={className}
+      eager={eager}
+      width={width}
+      fullWidth={fullWidth}
       onError={(e) => {
         const el = e.currentTarget
         if (!el.dataset.fallback) {
           el.dataset.fallback = '1'
           el.src = FOOD.fallback
+          el.removeAttribute('srcset')
         }
       }}
     />
@@ -175,6 +177,8 @@ export default function LandingPage() {
               src={FOOD.hero}
               alt=""
               eager
+              width={1280}
+              fullWidth
               className="lp-hero-bg absolute inset-0 w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-black/40" />

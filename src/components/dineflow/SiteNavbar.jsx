@@ -103,10 +103,17 @@ export default function SiteNavbar({ variant = 'light' }) {
     }
   }, [location.pathname])
 
+  useEffect(() => {
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
   const linkClass = `lp-nav-link ${isDark ? 'lp-nav-link--dark' : ''}`
 
+  const closeMenu = () => setOpen(false)
+
   const handleHomeClick = (e) => {
-    setOpen(false)
+    closeMenu()
     if (location.pathname === '/') {
       e.preventDefault()
       if (location.hash) {
@@ -118,7 +125,7 @@ export default function SiteNavbar({ variant = 'light' }) {
 
   const handleBookNow = (e) => {
     e?.preventDefault?.()
-    setOpen(false)
+    closeMenu()
     if (bookNowRef.current) {
       gsap.to(bookNowRef.current, {
         scale: 0.92,
@@ -134,7 +141,7 @@ export default function SiteNavbar({ variant = 'light' }) {
 
   const handleSignIn = (e) => {
     e?.preventDefault?.()
-    setOpen(false)
+    closeMenu()
     if (isLoggedIn) {
       navigate(ORDER_ENTRY)
       return
@@ -147,15 +154,15 @@ export default function SiteNavbar({ variant = 'light' }) {
 
   const handleSignUp = (e) => {
     e?.preventDefault?.()
-    setOpen(false)
+    closeMenu()
     guestAuth?.openAuthModal({
       mode: 'signup',
       redirectPath: '/order/dashboard',
     })
   }
 
-  const navItem = (item) => {
-    const cls = `${linkClass} lp-nav-item`
+  const navItem = (item, extraClass = 'lp-nav-item') => {
+    const cls = `${linkClass} ${extraClass}`
     if (item.href === '/') {
       return (
         <Link key={item.label} to="/" className={cls} onClick={handleHomeClick}>
@@ -164,21 +171,29 @@ export default function SiteNavbar({ variant = 'light' }) {
       )
     }
     if (item.href.startsWith('/') && !item.href.includes('#')) {
-      return <Link key={item.label} to={item.href} className={cls}>{item.label}</Link>
+      return <Link key={item.label} to={item.href} className={cls} onClick={closeMenu}>{item.label}</Link>
     }
-    return <a key={item.label} href={item.href} className={cls}>{item.label}</a>
+    return <a key={item.label} href={item.href} className={cls} onClick={closeMenu}>{item.label}</a>
+  }
+
+  const profileProps = {
+    profileName,
+    profileInitials,
+    fullName: profileFullName,
+    email: profileEmail,
+    isDark,
   }
 
   return (
     <header className={`lp-premium-nav-shell ${isDark ? 'lp-premium-nav-shell--fixed' : ''}`}>
       <div
         ref={navRef}
-        className={`lp-premium-nav max-w-7xl mx-auto ${scrolled ? 'lp-premium-nav--scrolled' : ''} ${isDark ? 'lp-premium-nav--dark' : ''}`}
+        className={`lp-premium-nav max-w-7xl mx-auto ${scrolled ? 'lp-premium-nav--scrolled' : ''} ${isDark ? 'lp-premium-nav--dark' : ''} ${open ? 'lp-premium-nav--menu-open' : ''}`}
       >
-        <div className="lp-premium-nav-inner flex items-center justify-between gap-4 px-4 sm:px-6 h-[4.25rem]">
+        <div className="lp-premium-nav-inner flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-6 h-14 sm:h-[4.25rem] min-h-[3.5rem]">
           <Link
             to="/"
-            className="flex items-center gap-3 shrink-0 group lp-nav-item"
+            className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0 group lp-nav-item"
             onClick={handleHomeClick}
             onMouseEnter={() => {
               if (logoRef.current) {
@@ -191,120 +206,126 @@ export default function SiteNavbar({ variant = 'light' }) {
               }
             }}
           >
-            <div ref={logoRef}>
+            <div ref={logoRef} className="shrink-0">
               <BrandMark size="sm" className="group-hover:shadow-orange-500/40 transition-shadow" />
             </div>
             <BrandLogo
-              className={`text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}
+              className={`text-base sm:text-lg truncate ${isDark ? 'text-white' : 'text-slate-900'}`}
               accentClass={isDark ? 'text-amber-400' : 'text-orange-500'}
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-center">
             {NAV.map((item) => navItem(item))}
           </nav>
 
-          <div className="flex items-center gap-2 sm:gap-3 relative z-20">
+          {/* Desktop only — hidden on phone/tablet */}
+          <div className="lp-nav-desktop-actions">
             <ThemeToggle />
             <button
               ref={bookNowRef}
               type="button"
               onClick={handleBookNow}
-              className="lp-nav-book-now hidden sm:inline-flex items-center gap-2"
+              className="lp-nav-book-now"
             >
               <FiCalendar size={15} />
               Book Now
             </button>
             {isLoggedIn ? (
-              <NavbarProfileMenu
-                profileName={profileName}
-                profileInitials={profileInitials}
-                fullName={profileFullName}
-                email={profileEmail}
-                isDark={isDark}
-              />
+              <NavbarProfileMenu {...profileProps} />
             ) : (
               <button
                 type="button"
                 onClick={handleSignIn}
-                className="lp-nav-cta hidden sm:inline-flex items-center gap-2"
+                className="lp-nav-cta"
               >
                 Sign in
                 <FiArrowRight size={16} />
               </button>
             )}
+          </div>
+
+          {/* Mobile only — hamburger menu (no other buttons in bar) */}
+          <div className="lp-nav-mobile-bar">
             <button
               type="button"
-              className="lg:hidden lp-nav-menu-btn"
-              onClick={() => setOpen(!open)}
-              aria-label="Menu"
+              className={`lp-nav-menu-btn ${isDark ? 'lp-nav-menu-btn--dark' : 'lp-nav-menu-btn--light'} ${open ? 'is-open' : ''}`}
+              onClick={() => setOpen((v) => !v)}
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
             >
-              {open ? <FiX size={20} /> : <FiMenu size={20} />}
+              {open ? <FiX size={22} /> : <FiMenu size={22} />}
             </button>
           </div>
         </div>
 
+        {/* Mobile drawer */}
         {open && (
-          <div className="lg:hidden px-4 pb-5 border-t border-white/10">
-            <nav className="flex flex-col gap-1 pt-3">
-              {NAV.map((item) => (
-                item.href === '/' ? (
-                  <Link
-                    key={item.label}
-                    to="/"
-                    className={`${linkClass} block py-3 px-3 text-base`}
-                    onClick={handleHomeClick}
+          <>
+            <button
+              type="button"
+              className="lp-nav-mobile-backdrop"
+              aria-label="Close menu"
+              onClick={closeMenu}
+            />
+            <div className={`lp-nav-mobile-panel ${isDark ? 'lp-nav-mobile-panel--dark' : 'lp-nav-mobile-panel--light'}`}>
+              {/* Book Now + Sign in — always at top on mobile */}
+              <div className="lp-nav-mobile-actions lp-nav-mobile-actions--primary">
+                <button
+                  type="button"
+                  onClick={handleBookNow}
+                  className="lp-nav-mobile-btn lp-nav-mobile-btn--book"
+                >
+                  <FiCalendar size={17} />
+                  Book Now
+                </button>
+                {isLoggedIn ? (
+                  <button
+                    type="button"
+                    onClick={() => { closeMenu(); navigate(ORDER_ENTRY) }}
+                    className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >
-                    {item.label}
-                  </Link>
+                    Dashboard
+                    <FiArrowRight size={17} />
+                  </button>
                 ) : (
-                  <a
-                    key={item.label}
-                    href={item.href}
-                    className={`${linkClass} block py-3 px-3 text-base`}
-                    onClick={() => setOpen(false)}
-                  >
-                    {item.label}
-                  </a>
-                )
-              ))}
-              <button
-                type="button"
-                onClick={handleBookNow}
-                className="lp-nav-book-now w-full justify-center mt-3 py-3"
-              >
-                <FiCalendar size={16} /> Book Now
-              </button>
-              {isLoggedIn ? (
-                <div className="mt-2">
-                  <NavbarProfileMenu
-                    profileName={profileName}
-                    profileInitials={profileInitials}
-                    fullName={profileFullName}
-                    email={profileEmail}
-                    isDark={isDark}
-                  />
-                </div>
-              ) : (
-                <>
                   <button
                     type="button"
                     onClick={handleSignIn}
-                    className="lp-nav-cta w-full justify-center mt-2 py-3"
+                    className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >
-                    Sign in <FiArrowRight size={16} />
+                    Sign in
+                    <FiArrowRight size={17} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleSignUp}
-                    className="lp-nav-link-btn w-full justify-center mt-2 py-3 flex items-center gap-2"
-                  >
-                    <FiUser size={16} /> Create account
-                  </button>
-                </>
+                )}
+              </div>
+
+              <nav className="lp-nav-mobile-links">
+                {NAV.map((item) => navItem(item, ''))}
+              </nav>
+
+              {!isLoggedIn && (
+                <button
+                  type="button"
+                  onClick={handleSignUp}
+                  className="lp-nav-mobile-signup w-full justify-center py-3"
+                >
+                  <FiUser size={17} /> Create account
+                </button>
               )}
-            </nav>
-          </div>
+
+              {isLoggedIn && (
+                <div className="lp-nav-mobile-profile-block">
+                  <NavbarProfileMenu {...profileProps} mobile />
+                </div>
+              )}
+
+              <div className="lp-nav-mobile-footer">
+                <span className="lp-nav-mobile-footer-label">Theme</span>
+                <ThemeToggle />
+              </div>
+            </div>
+          </>
         )}
       </div>
     </header>
