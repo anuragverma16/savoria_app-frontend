@@ -1,0 +1,64 @@
+const SESSION_KEY = 'savoria_guest_session'
+
+export function loadSavoriaSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function saveSavoriaSession(session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+export function patchSavoriaSession(patch) {
+  const current = loadSavoriaSession() || {}
+  const next = { ...current, ...patch, updatedAt: Date.now() }
+  saveSavoriaSession(next)
+  return next
+}
+
+export function clearSavoriaSession() {
+  localStorage.removeItem(SESSION_KEY)
+}
+
+export function linkTableFromScan(parsed = {}) {
+  return patchSavoriaSession({
+    rid: parsed.rid || 'demo',
+    tableToken: parsed.tableToken || parsed.table,
+    tableId: parsed.tableId,
+    tableNumber: parsed.tableNumber || parsed.no || '12',
+    slug: parsed.slug,
+    qrLinked: true,
+  })
+}
+
+export function initSavoriaSessionFromParams(searchParams) {
+  const rid = searchParams.get('restaurantId') || searchParams.get('rid')
+  const tableToken = searchParams.get('table')
+  const tableNumber = searchParams.get('no') || searchParams.get('tableNumber')
+  const tableId = searchParams.get('tableId')
+  const slug = searchParams.get('slug')
+
+  const existing = loadSavoriaSession() || {}
+
+  const session = {
+    ...existing,
+    rid: rid || existing.rid,
+    tableToken: tableToken || existing.tableToken,
+    tableId: tableId || existing.tableId,
+    tableNumber: tableNumber || existing.tableNumber,
+    slug: slug || existing.slug,
+    restaurantName: existing.restaurantName,
+    cart: existing.cart || [],
+    auth: existing.auth || null,
+    orders: existing.orders || [],
+    scanLocked: existing.scanLocked || false,
+    updatedAt: Date.now(),
+  }
+
+  saveSavoriaSession(session)
+  return session
+}

@@ -1,0 +1,6 @@
+Optional: place your custom invoice background PDF here as:
+
+  frontend/public/invoice-template.pdf
+
+If this file exists, the app overlays order details on page 1.
+If missing, a full invoice PDF is generated automatically with all order fields.
