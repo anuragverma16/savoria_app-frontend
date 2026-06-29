@@ -21,18 +21,18 @@ import {
 
 const ORDER_ENTRY = '/order/tables?scan=1'
 
-/** Optimized images — Unsplash CDN with webp + smaller widths */
-const BURGER_HD =
-  'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=72&auto=format&fit=crop'
-const NOODLES_IMG =
-  'https://images.unsplash.com/photo-1569718214665-38fae59bee0a?w=800&q=72&auto=format&fit=crop'
+/** Hero food chips — local burger & noodles assets + pizza */
+const BURGER_HD = 'https://i.pinimg.com/736x/32/d1/ad/32d1ad6c8cf61340797e4f536c052b9b.jpg'
+const NOODLES_IMG = 'https://i.pinimg.com/736x/ac/e1/30/ace1309df3647bd066b9890809d4bc4d.jpg'
+const PIZZA_IMG =
+  'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=90&fit=crop'
 
 const FOOD = {
   fallback: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=72&auto=format&fit=crop',
   hero: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1280&q=72&auto=format&fit=crop',
-  heroPizza: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=72&auto=format&fit=crop',
+  heroPizza: PIZZA_IMG,
   heroNoodles: NOODLES_IMG,
-  galleryPizza: 'https://images.unsplash.com/photo-1565299624946-b28f40a7ca7f?w=800&q=72&auto=format&fit=crop',
+  galleryPizza: 'https://images.unsplash.com/photo-1565299624946-b28f40a7ca7f?w=1200&q=90&fit=crop',
   galleryBurger: BURGER_HD,
   galleryPasta: 'https://images.unsplash.com/photo-1473093290779-441010016dd3?w=800&q=72&auto=format&fit=crop',
   galleryWings: 'https://images.unsplash.com/photo-1626082897516-8afb70ce5d3a?w=800&q=72&auto=format&fit=crop',
@@ -53,7 +53,7 @@ const FOOD = {
 const HERO_CHIPS = [
   { src: FOOD.heroPizza, label: 'Pizza' },
   { src: FOOD.galleryBurger, label: 'Burgers', portrait: true },
-  { src: FOOD.heroNoodles, label: 'Noodles' },
+  { src: FOOD.heroNoodles, label: 'Noodles', portrait: true },
 ]
 
 const SPOTLIGHT_VIDEOS = [
