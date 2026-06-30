@@ -36,7 +36,7 @@ api.interceptors.response.use(
       if (auth.refreshToken && !error.config._retry) {
         error.config._retry = true
         try {
-          const { data } = await axios.post('/api/auth/refresh', { refreshToken: auth.refreshToken })
+          const { data } = await axios.post('/auth/refresh', { refreshToken: auth.refreshToken })
           localStorage.setItem('dineflow_auth', JSON.stringify({
             ...auth,
             accessToken: data.accessToken,
