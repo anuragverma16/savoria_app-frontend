@@ -1,8 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
   FiArrowRight, FiMaximize2, FiBarChart2, FiUsers, FiZap,
-  FiCheck, FiSend, FiCalendar, FiMail, FiPhone, FiMapPin, FiPlay,
+  FiCheck, FiSend, FiMail, FiPhone, FiMapPin, FiPlay,
 } from 'react-icons/fi'
 import SiteNavbar from '../../components/dineflow/SiteNavbar'
 import SiteFooter from '../../components/dineflow/SiteFooter'
@@ -18,8 +17,6 @@ import {
   showContactSentToast,
   showContactValidationToast,
 } from '../../utils/appToast'
-
-const ORDER_ENTRY = '/order/tables?scan=1'
 
 /** Hero food chips — local burger & noodles assets + pizza */
 const BURGER_HD = 'https://i.pinimg.com/736x/32/d1/ad/32d1ad6c8cf61340797e4f536c052b9b.jpg'
@@ -111,7 +108,6 @@ const EMPTY_CONTACT_FORM = {
 
 export default function LandingPage() {
   const pageRef = useRef(null)
-  const navigate = useNavigate()
   const guestAuth = useSavoriaGuestOptional()
   const [contactForm, setContactForm] = useState(EMPTY_CONTACT_FORM)
   const [contactSending, setContactSending] = useState(false)
@@ -172,7 +168,7 @@ export default function LandingPage() {
   }
 
   const openLogin = () => {
-    guestAuth?.openAuthModal({ mode: 'login', redirectPath: ORDER_ENTRY })
+    guestAuth?.openAuthModal({ mode: 'login', redirectPath: '/order/dashboard' })
   }
 
   const scrollToDemo = () => {
@@ -224,14 +220,6 @@ export default function LandingPage() {
                 </p>
 
                 <div className="lp-hero-cta flex flex-wrap gap-4">
-                  <button
-                    type="button"
-                    onClick={() => navigate(ORDER_ENTRY)}
-                    className="lp-nav-book-now px-8 py-4 text-base inline-flex items-center gap-2"
-                  >
-                    <FiCalendar size={18} />
-                    Book Now
-                  </button>
                   <button
                     type="button"
                     onClick={scrollToDemo}

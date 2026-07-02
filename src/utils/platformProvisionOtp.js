@@ -1,3 +1,8 @@
+import {
+  sendWhatsappOtp,
+  verifyWhatsappOtp,
+  maskPhone,
+} from './savoriaWhatsappOtp'
 import { platformAPI } from '../api/dineflow'
 
 export function normalizeProvisionPhone(phone) {
@@ -5,23 +10,24 @@ export function normalizeProvisionPhone(phone) {
 }
 
 export function maskProvisionPhone(phone) {
-  const digits = normalizeProvisionPhone(phone)
-  if (digits.length < 4) return digits
-  return `******${digits.slice(-4)}`
+  return maskPhone(normalizeProvisionPhone(phone))
 }
 
+/** Same WhatsApp OTP pipeline as super-admin login */
 export async function sendProvisionWhatsAppOtp(phone) {
-  try {
-    const { data } = await platformAPI.sendProvisionWhatsAppOtp({
-      phone: normalizeProvisionPhone(phone),
-    })
-    return data
-  } catch (err) {
-    const message = err.response?.data?.message || err.message || 'Could not send WhatsApp code'
-    const error = new Error(message)
-    if (err.response?.data?.resendIn) error.resendIn = err.response.data.resendIn
-    throw error
+  const digits = normalizeProvisionPhone(phone)
+  if (digits.length !== 10) {
+    throw new Error('Enter a valid 10-digit mobile number')
   }
+  return sendWhatsappOtp(digits, 'provision')
+}
+
+export async function verifyProvisionWhatsAppOtp(phone, code) {
+  const digits = normalizeProvisionPhone(phone)
+  if (digits.length !== 10) {
+    throw new Error('Enter a valid 10-digit mobile number')
+  }
+  return verifyWhatsappOtp(digits, code, {}, 'provision')
 }
 
 export function validateProvisionForm(createMode, form) {
@@ -40,4 +46,17 @@ export function validateProvisionForm(createMode, form) {
     if (!form.city?.trim()) return 'City is required'
   }
   return null
+}
+
+/** Validate staff/admin can be added before sending OTP */
+export async function precheckRestaurantProvision(restaurantId, { name, email, phone, role }) {
+  if (!restaurantId) {
+    throw new Error('Select a restaurant first')
+  }
+  await platformAPI.precheckRestaurantProvision(restaurantId, {
+    name: String(name || '').trim(),
+    email: String(email || '').trim().toLowerCase(),
+    phone: normalizeProvisionPhone(phone),
+    role,
+  })
 }

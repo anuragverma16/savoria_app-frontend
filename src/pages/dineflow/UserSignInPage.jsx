@@ -5,14 +5,14 @@ import { hydrateTenantAfterAuth, getRedirectAfterLogin } from '../../utils/panel
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import toast from 'react-hot-toast'
 
-const ORDER_ENTRY = '/order/tables?scan=1'
+const ORDER_DASHBOARD = '/order/dashboard'
 
 function resolveReturnPath(location) {
   const from = location.state?.from
   if (from?.pathname?.startsWith('/order')) {
     return `${from.pathname}${from.search || ''}`
   }
-  return ORDER_ENTRY
+  return ORDER_DASHBOARD
 }
 
 export default function UserSignInPage() {

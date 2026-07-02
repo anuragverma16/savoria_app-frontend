@@ -2,12 +2,19 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { FiX } from 'react-icons/fi'
 import toast from 'react-hot-toast'
+import {
+  showOtpSentToast,
+  showOtpErrorToast,
+} from '../../utils/appToast'
 import PlatformProvisionForm from './PlatformProvisionForm'
 import PlatformProvisionOtpStep from './PlatformProvisionOtpStep'
 import {
   normalizeProvisionPhone,
+  maskProvisionPhone,
   sendProvisionWhatsAppOtp,
+  verifyProvisionWhatsAppOtp,
   validateProvisionForm,
+  precheckRestaurantProvision,
 } from '../../utils/platformProvisionOtp'
 import './platform-provision.css'
 
@@ -45,6 +52,7 @@ export default function PlatformProvisionModal({
   const [maskedPhone, setMaskedPhone] = useState('')
   const [resendIn, setResendIn] = useState(0)
   const [sendingOtp, setSendingOtp] = useState(false)
+  const [verifyingOtp, setVerifyingOtp] = useState(false)
 
   const overlayRef = useRef(null)
   const modalRef = useRef(null)
@@ -58,6 +66,7 @@ export default function PlatformProvisionModal({
     setMaskedPhone('')
     setResendIn(0)
     setSendingOtp(false)
+    setVerifyingOtp(false)
   }, [])
 
   useEffect(() => {
@@ -129,17 +138,37 @@ export default function PlatformProvisionModal({
 
     setSendingOtp(true)
     try {
+      if ((createMode === 'staff' || createMode === 'admin') && selectedRestaurant?._id) {
+        await precheckRestaurantProvision(selectedRestaurant._id, {
+          name: form.adminName,
+          email: form.adminEmail,
+          phone: form.adminPhone,
+          role: createMode === 'staff' ? 'staff' : 'admin',
+        })
+      }
+
       const result = await sendProvisionWhatsAppOtp(form.adminPhone)
-      setMaskedPhone(result.maskedPhone || normalizeProvisionPhone(form.adminPhone))
+      const masked = result.maskedPhone || maskProvisionPhone(form.adminPhone)
+      setMaskedPhone(masked)
       setResendIn(result.resendIn || 60)
+      showOtpSentToast(masked, {
+        whatsapp: result.deliveredVia !== 'sms',
+        label: result.deliveredVia === 'sms' ? 'SMS' : 'WhatsApp',
+        sender: result.deliveredVia === 'sms' ? 'Savoria' : 'Savoria SaaS Team',
+      })
       if (!isResend) setStep('verify')
       else {
         setOtp(['', '', '', '', '', ''])
         toast.success('New code sent')
       }
     } catch (err) {
-      if (err.response?.data?.resendIn) setResendIn(err.response.data.resendIn)
-      toast.error(err.response?.data?.message || 'Could not send WhatsApp code')
+      if (err.resendIn) setResendIn(err.resendIn)
+      const message = err.response?.data?.message || err.message
+      if (message && !/whatsapp|otp|code|deliver/i.test(message)) {
+        toast.error(message)
+      } else {
+        showOtpErrorToast(message || 'Could not send WhatsApp code')
+      }
     } finally {
       setSendingOtp(false)
     }
@@ -147,7 +176,7 @@ export default function PlatformProvisionModal({
 
   const handlePrimaryAction = async (e) => {
     e.preventDefault()
-    if (saving || sendingOtp) return
+    if (saving || sendingOtp || verifyingOtp) return
 
     if (step === 'details') {
       await sendOtp(false)
@@ -159,13 +188,24 @@ export default function PlatformProvisionModal({
       toast.error('Enter the 6-digit verification code')
       return
     }
-    onSubmit({ otpCode })
+
+    setVerifyingOtp(true)
+    try {
+      const { provisionToken } = await verifyProvisionWhatsAppOtp(form.adminPhone, otpCode)
+      onSubmit({ provisionToken })
+    } catch (err) {
+      toast.error(err.message || 'Invalid verification code')
+    } finally {
+      setVerifyingOtp(false)
+    }
   }
 
   if (!open) return null
 
   const primaryLabel = saving
     ? 'Saving...'
+    : verifyingOtp
+      ? 'Verifying...'
     : sendingOtp
       ? 'Sending code...'
       : step === 'details'
@@ -224,7 +264,7 @@ export default function PlatformProvisionModal({
               form={form}
               onFieldChange={onFieldChange}
               onPhoneChange={onPhoneChange}
-              disabled={saving || sendingOtp}
+              disabled={saving || sendingOtp || verifyingOtp}
               animateKey={animateKey}
             />
           ) : (
@@ -236,7 +276,7 @@ export default function PlatformProvisionModal({
               onResend={() => sendOtp(true)}
               resendIn={resendIn}
               sending={sendingOtp}
-              disabled={saving}
+              disabled={saving || verifyingOtp}
             />
           )}
 
@@ -244,14 +284,14 @@ export default function PlatformProvisionModal({
             <button
               type="button"
               onClick={handleClose}
-              disabled={saving || sendingOtp}
+              disabled={saving || sendingOtp || verifyingOtp}
               className="pv-btn-ghost"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving || sendingOtp}
+              disabled={saving || sendingOtp || verifyingOtp}
               className="pv-btn-submit"
             >
               {primaryLabel}

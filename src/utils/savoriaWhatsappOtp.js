@@ -22,7 +22,7 @@ function otpError(err, fallback) {
     return error
   }
 
-  if (/not registered|sign up first|already registered|log in instead|super admin mobile|cannot be assigned/i.test(message)) {
+  if (/not registered|sign up first|already registered|log in instead|super admin mobile|cannot be assigned|reserved for platform/i.test(message)) {
     const error = new Error(message)
     if (err.response?.data?.resendIn) error.resendIn = err.response.data.resendIn
     return error
@@ -75,6 +75,7 @@ export async function verifyWhatsappOtp(phone, code, profile = {}, purpose = 'lo
       name: profile.name,
       email: profile.email,
       restaurantName: profile.restaurantName,
+      restaurantId: profile.restaurantId,
     }
     if (loginRole === 'admin' || loginRole === 'staff') {
       payload.loginRole = loginRole

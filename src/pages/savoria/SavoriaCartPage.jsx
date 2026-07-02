@@ -7,15 +7,11 @@ import SavoriaCartLineItem from '../../components/savoria/SavoriaCartLineItem'
 export default function SavoriaCartPage() {
   const navigate = useNavigate()
   const {
-    cart, totals, updateCartQty, removeFromCart, requireAuth, restaurant, isAuthenticated, paths, GST_RATE,
+    cart, totals, updateCartQty, removeFromCart, restaurant, paths, GST_RATE,
   } = useSavoriaGuest()
 
   const handleCheckout = () => {
-    if (isAuthenticated) {
-      navigate(paths.checkout)
-      return
-    }
-    requireAuth(paths.checkout)
+    navigate(paths.checkout)
   }
 
   if (cart.length === 0) {
@@ -93,7 +89,7 @@ export default function SavoriaCartPage() {
 
       <div className="fixed bottom-0 inset-x-0 sv-sticky-bar md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:bottom-4 md:rounded-2xl">
         <button type="button" onClick={handleCheckout} className="sv-btn-primary w-full py-3.5">
-          Proceed to Checkout · ₹{totals.total}
+          Proceed to Payment · ₹{totals.total}
         </button>
       </div>
     </div>

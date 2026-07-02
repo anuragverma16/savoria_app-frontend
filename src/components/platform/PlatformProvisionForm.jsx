@@ -239,7 +239,9 @@ export default function PlatformProvisionForm({
           phoneBoxRef={phoneBoxRef}
         />
         <p className="relative z-[1] text-[11px] text-stone-500 sm:col-span-2 -mt-1">
-          Use a personal mobile for {personLabel.toLowerCase()} login — not the super admin number. OTP will be sent to this WhatsApp number.
+          {createMode === 'staff'
+            ? 'Use a new staff member\'s personal mobile — not the restaurant admin\'s number. Email must match the account linked to that mobile.'
+            : `Use a personal mobile for ${personLabel.toLowerCase()} login — not the super admin number. OTP will be sent to this WhatsApp number.`}
         </p>
       </div>
     </div>

@@ -51,7 +51,10 @@ export default function PlatformProvisionOtpStep({
         <div>
           <p className="text-sm font-semibold text-stone-100">Verify WhatsApp number</p>
           <p className="text-xs text-stone-400 mt-0.5">
-            Code sent to {maskedPhone || 'the mobile number'} — required before creating this account.
+            Check WhatsApp or SMS on {maskedPhone || 'the mobile number'} and enter the 6-digit code below.
+          </p>
+          <p className="text-[11px] text-amber-400/90 mt-1.5 leading-relaxed">
+            No message? On that phone, open WhatsApp → send <strong>join</strong> and your sandbox code to +1 415 523 8886, then tap Resend.
           </p>
         </div>
       </div>

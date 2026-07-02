@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { FiLogOut, FiShield } from 'react-icons/fi'
+import { FiHome, FiLogOut, FiShield } from 'react-icons/fi'
 import { logout } from '../store/slices/authSlice'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import BrandLogo from '../components/dineflow/BrandLogo'
@@ -25,6 +25,14 @@ export default function PlatformLayout() {
             <BrandLogo className="text-lg" accentClass="df-text-accent" />
           </Link>
           <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-sm text-white/70 hover:text-white hover:bg-white/5 transition-colors"
+              title="Marketing home"
+            >
+              <FiHome size={15} />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
             <ThemeToggle />
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--df-border)] text-sm text-white/80">
               <FiShield className="df-text-accent" size={14} />

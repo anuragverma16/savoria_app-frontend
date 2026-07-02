@@ -1,23 +1,26 @@
 import { Link, Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { FiGrid, FiLink, FiShoppingBag, FiHome, FiLogOut, FiClock } from 'react-icons/fi'
+import { FiGrid, FiShoppingBag, FiHome, FiLogOut, FiClock, FiUser, FiPackage } from 'react-icons/fi'
 import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import SavoriaPublicBootstrap from '../components/SavoriaPublicBootstrap'
 import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
 import { useOrderPanelPaths } from '../utils/orderPanelPaths'
+import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
 import toast from 'react-hot-toast'
 
 const NAV = [
   { to: '/order/dashboard', label: 'Home', icon: FiGrid, end: true },
-  { to: '/order/tables', label: 'Book table', icon: FiLink },
   { to: '/order/menu', label: 'Menu', icon: FiShoppingBag },
-  { to: '/order/history', label: 'Orders', icon: FiClock },
+  { to: '/order/active', label: 'Active', icon: FiPackage },
+  { to: '/order/history', label: 'History', icon: FiClock },
+  { to: '/order/settings', label: 'Profile', icon: FiUser },
 ]
 
 function OrderShell() {
   const { activeRestaurant } = useSelector((s) => s.tenant)
+  const { user, accessToken } = useSelector((s) => s.auth)
   const panelPaths = useOrderPanelPaths()
   const {
     isAuthenticated,
@@ -27,6 +30,13 @@ function OrderShell() {
     auth,
   } = useSavoriaGuest()
   const navigate = useNavigate()
+  const rid = activeRestaurant?._id || session?.rid
+  const isLoggedIn = Boolean(accessToken && user)
+
+  useTableSessionGuard(rid, {
+    enabled: Boolean(isLoggedIn && rid && session?.qrLinked),
+    restaurant: activeRestaurant || { _id: rid, slug: session?.slug, name: session?.restaurantName },
+  })
 
   const handleLogout = () => {
     logoutGuest()

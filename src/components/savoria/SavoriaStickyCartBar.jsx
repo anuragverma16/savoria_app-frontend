@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 
 export default function SavoriaStickyCartBar() {
-  const { totals, requireAuth, isAuthenticated, paths } = useSavoriaGuest()
+  const { totals, paths } = useSavoriaGuest()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -11,11 +11,7 @@ export default function SavoriaStickyCartBar() {
   if (location.pathname.includes('/cart') || location.pathname.includes('/checkout')) return null
 
   const handleViewCart = () => {
-    if (isAuthenticated) {
-      navigate(paths.cart)
-      return
-    }
-    requireAuth(paths.cart)
+    navigate(paths.cart)
   }
 
   return (

@@ -7,6 +7,8 @@ import { restaurantAPI } from '../../api/dineflow'
 import DineflowUpiPaymentModal from '../../components/dineflow/DineflowUpiPaymentModal'
 import { downloadOrderInvoice } from '../../utils/generateInvoicePdf'
 
+const RESUME_PAYMENT_KEY = 'savoria_resume_payment'
+
 export default function SavoriaCheckoutPage() {
   const navigate = useNavigate()
   const {
@@ -26,12 +28,6 @@ export default function SavoriaCheckoutPage() {
     requireAuth,
   } = useSavoriaGuest()
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      requireAuth(paths.checkout)
-    }
-  }, [isAuthenticated, requireAuth, paths.checkout])
-
   const [couponInput, setCouponInput] = useState('')
   const [couponLoading, setCouponLoading] = useState(false)
   const [customerName, setCustomerName] = useState(auth?.name || user?.name || '')
@@ -43,6 +39,15 @@ export default function SavoriaCheckoutPage() {
     if (auth?.name) setCustomerName(auth.name)
     if (auth?.phone) setPhone(auth.phone)
   }, [auth])
+
+  useEffect(() => {
+    if (!isAuthenticated) return
+    if (sessionStorage.getItem(RESUME_PAYMENT_KEY) !== '1') return
+    sessionStorage.removeItem(RESUME_PAYMENT_KEY)
+    if (auth?.name) setCustomerName(auth.name)
+    if (auth?.phone) setPhone(auth.phone)
+    setShowUpiModal(true)
+  }, [isAuthenticated, auth])
 
   const applyCoupon = async () => {
     const code = couponInput.trim()
@@ -93,6 +98,11 @@ export default function SavoriaCheckoutPage() {
   }
 
   const handlePayClick = () => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem(RESUME_PAYMENT_KEY, '1')
+      requireAuth(paths.checkout)
+      return
+    }
     if (!customerName.trim()) {
       toast.error('Please enter your name')
       return

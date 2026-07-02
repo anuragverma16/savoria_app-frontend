@@ -74,6 +74,7 @@ export const authAPI = {
   verifyEmailSignup: (data) => api.post('/auth/email-otp/verify-signup', data),
   verifyEmailLogin: (data) => api.post('/auth/email-otp/verify-login', data),
   me: () => api.get('/auth/me'),
+  updateProfile: (data) => api.patch('/auth/profile', data),
   logout: (data) => api.post('/auth/logout', data),
   impersonate: (id) => api.post(`/auth/impersonate/${id}`),
 }
@@ -88,6 +89,7 @@ export const platformAPI = {
   createRestaurantAdmin: (id, data) => api.post(`/platform/restaurants/${id}/admins`, data),
   restaurantStaff: (id) => api.get(`/platform/restaurants/${id}/staff`),
   createRestaurantStaff: (id, data) => api.post(`/platform/restaurants/${id}/staff`, data),
+  precheckRestaurantProvision: (id, data) => api.post(`/platform/restaurants/${id}/provision-precheck`, data),
   restaurantAdmins: (id) => api.get(`/platform/restaurants/${id}/admins`),
   updateRestaurant: (id, data) => api.put(`/platform/restaurants/${id}`, data),
   suspend: (id) => api.patch(`/platform/restaurants/${id}/suspend`),
@@ -101,6 +103,7 @@ export const platformAPI = {
   loginHistory: (params) => api.get('/platform/login-history', { params }),
   customerDashboard: (restaurantId, params) => api.get(`/platform/restaurants/${restaurantId}/customer-dashboard`, { params }),
   sendProvisionWhatsAppOtp: (data) => api.post('/platform/provision/whatsapp-otp', data),
+  verifyProvisionWhatsAppOtp: (data) => api.post('/platform/provision/verify-whatsapp-otp', data),
 }
 
 export const publicAPI = {

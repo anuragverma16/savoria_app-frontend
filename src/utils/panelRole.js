@@ -95,13 +95,25 @@ export function pickMembership(user, memberships = [], rawRole) {
   return pool[0]
 }
 
-export function resolveAuthRestaurant(user, memberships = [], loginRole) {
-  const membership = pickMembership(user, memberships, loginRole)
+export function pickMembershipAtRestaurant(user, memberships = [], restaurantId, rawRole = 'user') {
+  if (!restaurantId) return pickMembership(user, memberships, rawRole)
+  const rid = String(restaurantId)
+  const match = (memberships || []).find(
+    (m) => m.isActive !== false && restaurantIdOf(m) === rid,
+  )
+  if (match) return match
+  return pickMembership(user, memberships, rawRole)
+}
+
+export function resolveAuthRestaurant(user, memberships = [], loginRole, preferredRestaurantId) {
+  const membership = preferredRestaurantId
+    ? pickMembershipAtRestaurant(user, memberships, preferredRestaurantId, loginRole)
+    : pickMembership(user, memberships, loginRole)
   const restaurant = normalizeRestaurant(membership?.restaurant || user?.restaurant)
   return { membership, restaurant }
 }
 
-export function hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole }, tabRole) {
+export function hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole, preferredRestaurantId }, tabRole) {
   if (isSuperAdminUser(user) && (loginRole === 'superadmin' || tabRole === 'superadmin')) {
     dispatch(setImpersonating(false))
     dispatch(setViewAsPanel(null))
@@ -110,7 +122,9 @@ export function hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole 
   }
 
   const role = tabRole || loginRole || user?.role || 'user'
-  const { membership, restaurant } = resolveAuthRestaurant(user, memberships, role)
+  const { membership, restaurant } = resolveAuthRestaurant(
+    user, memberships, role, preferredRestaurantId,
+  )
 
   dispatch(setImpersonating(false))
   dispatch(setViewAsPanel(null))
@@ -173,9 +187,61 @@ export function getNavbarDashboardPath(user, memberships = [], phoneHint) {
   if (shouldOpenSuperAdminPanel(user, phoneHint)) return '/platform'
   if (!user) return '/order/dashboard'
 
+  // Customer / QR guests use the public order panel
+  if (user.role === 'user') return '/order/dashboard'
+
+  const panelRole = user.role === 'staff' ? 'staff' : 'admin'
+  const membership = pickMembership(user, memberships, panelRole)
+  return getRedirectAfterLogin({ ...user, role: panelRole }, membership)
+    || getRedirectAfterLogin(user, membership)
+    || '/order/dashboard'
+}
+
+/** Whether the dashboard route requires a JWT session (not savoria-only guest). */
+export function dashboardPathRequiresAuth(path) {
+  return path.startsWith('/platform') || path.startsWith('/restaurant/')
+}
+
+/** Profile menu / navbar — navigate to the correct dashboard with auth handling. */
+export function navigateToProfileDashboard({
+  navigate,
+  dispatch,
+  user,
+  memberships,
+  phoneHint,
+  accessToken,
+  openAuthModal,
+}) {
+  const path = getNavbarDashboardPath(user, memberships, phoneHint) || '/order/dashboard'
+
+  if (dashboardPathRequiresAuth(path) && (!accessToken || !user)) {
+    openAuthModal?.({ mode: 'login', redirectPath: path })
+    return
+  }
+
+  if (user && accessToken && path.startsWith('/restaurant/')) {
+    const panelRole = user.role === 'staff' ? 'staff' : user.role === 'admin' ? 'admin' : 'user'
+    hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole: panelRole }, panelRole)
+  }
+
+  navigate(path)
+}
+
+function restaurantIdFromMemberships(user, memberships = []) {
   const activeMemberships = (memberships || []).filter((m) => m.isActive !== false)
-  const membership = activeMemberships[0] || { restaurant: user.restaurant }
-  return getRedirectAfterLogin(user, membership) || '/order/dashboard'
+  const membership = activeMemberships[0] || { restaurant: user?.restaurant }
+  const r = membership?.restaurant || user?.restaurant
+  if (!r) return null
+  return r._id ? String(r._id) : String(r)
+}
+
+/** Personal account settings — editable profile for every role */
+export function getNavbarSettingsPath(user, memberships = [], phoneHint) {
+  if (shouldOpenSuperAdminPanel(user, phoneHint)) return '/platform/settings'
+  if (!user) return '/order/settings'
+  const rid = restaurantIdFromMemberships(user, memberships)
+  if (rid) return `/restaurant/${rid}/account`
+  return '/order/settings'
 }
 
 /** Super admin may preview admin/staff panels when those roles are provisioned */

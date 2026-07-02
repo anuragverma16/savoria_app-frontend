@@ -1,7 +1,7 @@
 import { useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-import { FiMenu, FiX, FiArrowRight, FiCalendar, FiUser } from 'react-icons/fi'
+import { useDispatch, useSelector } from 'react-redux'
+import { FiMenu, FiX, FiArrowRight, FiUser } from 'react-icons/fi'
 import { gsap } from '../../utils/gsapSetup'
 import ThemeToggle from './ThemeToggle'
 import BrandLogo from './BrandLogo'
@@ -9,8 +9,7 @@ import BrandMark from './BrandMark'
 import NavbarProfileMenu from './NavbarProfileMenu'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
-import { getNavbarDashboardPath } from '../../utils/panelRole'
-import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
+import { navigateToProfileDashboard } from '../../utils/panelRole'
 
 const NAV = [
   { label: 'Home', href: '/' },
@@ -20,7 +19,7 @@ const NAV = [
   { label: 'Pricing', href: '/#pricing' },
 ]
 
-const ORDER_ENTRY = '/order/dashboard'
+const ORDER_DASHBOARD = '/order/dashboard'
 
 function scrollToTop() {
   window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -31,9 +30,9 @@ export default function SiteNavbar({ variant = 'light' }) {
   const [scrolled, setScrolled] = useState(false)
   const navRef = useRef(null)
   const logoRef = useRef(null)
-  const bookNowRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const { user, accessToken, memberships } = useSelector((s) => s.auth)
   const guestAuth = useSavoriaGuestOptional()
   const savoriaAuth = loadSavoriaSession()?.auth
@@ -81,16 +80,6 @@ export default function SiteNavbar({ variant = 'light' }) {
         ease: 'power2.out',
         clearProps: 'opacity,transform',
       })
-      if (bookNowRef.current) {
-        gsap.from(bookNowRef.current, {
-          scale: 0.8,
-          opacity: 0,
-          duration: 0.5,
-          delay: 0.4,
-          ease: 'back.out(2)',
-          clearProps: 'opacity,transform',
-        })
-      }
     })
     return () => ctx.revert()
   }, [])
@@ -125,37 +114,24 @@ export default function SiteNavbar({ variant = 'light' }) {
     }
   }
 
-  const handleBookNow = (e) => {
-    e?.preventDefault?.()
-    closeMenu()
-    if (bookNowRef.current) {
-      gsap.to(bookNowRef.current, {
-        scale: 0.92,
-        duration: 0.1,
-        yoyo: true,
-        repeat: 1,
-        onComplete: () => navigate(ORDER_ENTRY),
-      })
-    } else {
-      navigate(ORDER_ENTRY)
-    }
-  }
-
   const handleSignIn = (e) => {
     e?.preventDefault?.()
     closeMenu()
     if (isLoggedIn) {
-      const phone = user?.phone || savoriaAuth?.phone
-      if (shouldOpenSuperAdminPanel(user, phone)) {
-        navigate('/platform')
-        return
-      }
-      navigate(getNavbarDashboardPath(user, memberships, phone))
+      navigateToProfileDashboard({
+        navigate,
+        dispatch,
+        user,
+        memberships,
+        phoneHint: user?.phone || savoriaAuth?.phone,
+        accessToken,
+        openAuthModal: guestAuth?.openAuthModal,
+      })
       return
     }
     guestAuth?.openAuthModal({
       mode: 'login',
-      redirectPath: '/order/dashboard',
+      redirectPath: ORDER_DASHBOARD,
     })
   }
 
@@ -164,7 +140,7 @@ export default function SiteNavbar({ variant = 'light' }) {
     closeMenu()
     guestAuth?.openAuthModal({
       mode: 'signup',
-      redirectPath: '/order/dashboard',
+      redirectPath: ORDER_DASHBOARD,
     })
   }
 
@@ -229,15 +205,6 @@ export default function SiteNavbar({ variant = 'light' }) {
           {/* Desktop only — hidden on phone/tablet */}
           <div className="lp-nav-desktop-actions">
             <ThemeToggle />
-            <button
-              ref={bookNowRef}
-              type="button"
-              onClick={handleBookNow}
-              className="lp-nav-book-now"
-            >
-              <FiCalendar size={15} />
-              Book Now
-            </button>
             {isLoggedIn ? (
               <NavbarProfileMenu {...profileProps} />
             ) : (
@@ -277,20 +244,20 @@ export default function SiteNavbar({ variant = 'light' }) {
             <div className={`lp-nav-mobile-panel ${isDark ? 'lp-nav-mobile-panel--dark' : 'lp-nav-mobile-panel--light'}`}>
               {/* Book Now + Sign in — always at top on mobile */}
               <div className="lp-nav-mobile-actions lp-nav-mobile-actions--primary">
-                <button
-                  type="button"
-                  onClick={handleBookNow}
-                  className="lp-nav-mobile-btn lp-nav-mobile-btn--book"
-                >
-                  <FiCalendar size={17} />
-                  Book Now
-                </button>
                 {isLoggedIn ? (
                   <button
                     type="button"
                     onClick={() => {
                       closeMenu()
-                      navigate(getNavbarDashboardPath(user, memberships, user?.phone || savoriaAuth?.phone))
+                      navigateToProfileDashboard({
+                        navigate,
+                        dispatch,
+                        user,
+                        memberships,
+                        phoneHint: user?.phone || savoriaAuth?.phone,
+                        accessToken,
+                        openAuthModal: guestAuth?.openAuthModal,
+                      })
                     }}
                     className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >

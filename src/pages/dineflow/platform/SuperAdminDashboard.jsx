@@ -232,7 +232,7 @@ export default function SuperAdminDashboard() {
     })
   }
 
-  const handleProvisionSubmit = async ({ otpCode }) => {
+  const handleProvisionSubmit = async ({ provisionToken, otpCode }) => {
     if (submitLockRef.current || saving) return
 
     const phone = normalizeProvisionPhone(adminForm.adminPhone)
@@ -240,8 +240,8 @@ export default function SuperAdminDashboard() {
       toast.error('Enter a valid 10-digit mobile number')
       return
     }
-    if (!otpCode || String(otpCode).length !== 6) {
-      toast.error('Enter the 6-digit verification code')
+    if (!provisionToken && (!otpCode || String(otpCode).length !== 6)) {
+      toast.error('Verify the mobile number with WhatsApp OTP first')
       return
     }
 
@@ -252,7 +252,7 @@ export default function SuperAdminDashboard() {
         name: adminForm.adminName.trim(),
         email: adminForm.adminEmail.trim().toLowerCase(),
         phone,
-        otpCode,
+        ...(provisionToken ? { provisionToken } : { otpCode }),
       }
 
       let createdRestaurantId = selectedRestaurantId
@@ -265,7 +265,7 @@ export default function SuperAdminDashboard() {
           adminName: payloadBase.name,
           adminEmail: payloadBase.email,
           adminPhone: payloadBase.phone,
-          otpCode,
+          ...(provisionToken ? { provisionToken } : { otpCode }),
         }, createIdempotencyKeyRef.current)
         createdRestaurantId = data.restaurant._id
         previewPanel = 'admin'

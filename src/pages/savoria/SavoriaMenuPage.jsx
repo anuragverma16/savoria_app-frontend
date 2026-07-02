@@ -39,8 +39,6 @@ export default function SavoriaMenuPage() {
     loadMenu,
     addToCart,
     totals,
-    requireAuth,
-    isAuthenticated,
     paths,
   } = useSavoriaGuest()
   const [search, setSearch] = useState('')
@@ -70,11 +68,7 @@ export default function SavoriaMenuPage() {
   }
 
   const handleCartClick = () => {
-    if (isAuthenticated) {
-      navigate(paths.cart)
-      return
-    }
-    requireAuth(paths.cart)
+    navigate(paths.cart)
   }
 
   return (

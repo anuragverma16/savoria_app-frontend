@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FiChevronDown, FiGrid, FiLogOut, FiSettings, FiUser, FiX } from 'react-icons/fi'
-import { useSelector } from 'react-redux'
+import { FiChevronDown, FiGrid, FiLogOut, FiSettings, FiX } from 'react-icons/fi'
+import { useDispatch, useSelector } from 'react-redux'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
-import { getNavbarDashboardPath } from '../../utils/panelRole'
-import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
-
-function settingsPath(dashboardPath, user) {
-  if (!dashboardPath?.includes('/restaurant/')) return dashboardPath
-  if (user?.role === 'admin' || user?.platformRole === 'admin') {
-    return dashboardPath.replace(/\/admin$/, '/settings')
-  }
-  return dashboardPath
-}
+import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
+import {
+  dashboardPathRequiresAuth,
+  getNavbarSettingsPath,
+  navigateToProfileDashboard,
+} from '../../utils/panelRole'
 
 export default function NavbarProfileMenu({
   profileName,
@@ -26,14 +22,12 @@ export default function NavbarProfileMenu({
   const [open, setOpen] = useState(false)
   const wrapRef = useRef(null)
   const navigate = useNavigate()
+  const dispatch = useDispatch()
   const guestAuth = useSavoriaGuestOptional()
-  const { user, memberships } = useSelector((s) => s.auth)
-  const phoneHint = user?.phone || guestAuth?.auth?.phone
-  const dashboardPath = shouldOpenSuperAdminPanel(user, phoneHint)
-    ? '/platform'
-    : getNavbarDashboardPath(user, memberships, phoneHint)
-  const detailsPath = dashboardPath
-  const settingsLink = settingsPath(dashboardPath, user)
+  const savoriaAuth = loadSavoriaSession()?.auth
+  const { user, memberships, accessToken } = useSelector((s) => s.auth)
+  const phoneHint = user?.phone || guestAuth?.auth?.phone || savoriaAuth?.phone
+  const settingsPath = getNavbarSettingsPath(user, memberships, phoneHint)
 
   const close = useCallback(() => {
     setOpen(false)
@@ -66,8 +60,49 @@ export default function NavbarProfileMenu({
 
   const goDashboard = () => {
     close()
-    navigate(dashboardPath)
+    navigateToProfileDashboard({
+      navigate,
+      dispatch,
+      user,
+      memberships,
+      phoneHint,
+      accessToken,
+      openAuthModal: guestAuth?.openAuthModal,
+    })
   }
+
+  const goSettings = () => {
+    close()
+    const path = settingsPath || '/order/settings'
+
+    if (dashboardPathRequiresAuth(path) && (!accessToken || !user)) {
+      guestAuth?.openAuthModal({
+        mode: 'login',
+        redirectPath: path,
+      })
+      return
+    }
+
+    navigate(path)
+  }
+
+  const menuItems = (
+    <>
+      <button type="button" className={mobile ? 'lp-nav-mobile-menu-item' : 'lp-nav-profile-menu-item'} onClick={goDashboard}>
+        <FiGrid size={mobile ? 18 : 16} /> Dashboard
+      </button>
+      <button type="button" className={mobile ? 'lp-nav-mobile-menu-item' : 'lp-nav-profile-menu-item'} onClick={goSettings}>
+        <FiSettings size={mobile ? 18 : 16} /> Settings
+      </button>
+      <button
+        type="button"
+        className={`${mobile ? 'lp-nav-mobile-menu-item lp-nav-mobile-menu-logout' : 'lp-nav-profile-menu-item lp-nav-profile-menu-logout'}`}
+        onClick={handleLogout}
+      >
+        <FiLogOut size={mobile ? 18 : 16} /> Logout
+      </button>
+    </>
+  )
 
   if (mobile) {
     return (
@@ -81,28 +116,12 @@ export default function NavbarProfileMenu({
             </div>
           </div>
           {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="lp-nav-profile-close"
-              aria-label="Close menu"
-            >
+            <button type="button" onClick={onClose} className="lp-nav-profile-close" aria-label="Close menu">
               <FiX size={18} />
             </button>
           )}
         </div>
-        <button type="button" className="lp-nav-mobile-menu-item" onClick={goDashboard}>
-          <FiGrid size={18} /> Dashboard
-        </button>
-        <button type="button" className="lp-nav-mobile-menu-item" onClick={() => { close(); navigate(detailsPath) }}>
-          <FiUser size={18} /> My details
-        </button>
-        <button type="button" className="lp-nav-mobile-menu-item" onClick={() => { close(); navigate(settingsLink) }}>
-          <FiSettings size={18} /> Settings
-        </button>
-        <button type="button" className="lp-nav-mobile-menu-item lp-nav-mobile-menu-logout" onClick={handleLogout}>
-          <FiLogOut size={18} /> Logout
-        </button>
+        {menuItems}
       </div>
     )
   }
@@ -119,18 +138,11 @@ export default function NavbarProfileMenu({
       >
         <span className="lp-nav-profile-avatar" aria-hidden>{profileInitials}</span>
         <span className="lp-nav-profile-name">{profileName}</span>
-        <FiChevronDown
-          size={14}
-          className={`lp-nav-profile-chevron ${open ? 'is-open' : ''}`}
-          aria-hidden
-        />
+        <FiChevronDown size={14} className={`lp-nav-profile-chevron ${open ? 'is-open' : ''}`} aria-hidden />
       </button>
 
       {open && (
-        <div
-          className={`lp-nav-profile-menu ${isDark ? 'lp-nav-profile-menu--dark' : ''}`}
-          role="menu"
-        >
+        <div className={`lp-nav-profile-menu ${isDark ? 'lp-nav-profile-menu--dark' : ''}`} role="menu">
           <div className="lp-nav-profile-menu-head lp-nav-profile-menu-head--with-close">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <span className="lp-nav-profile-menu-avatar">{profileInitials}</span>
@@ -139,37 +151,12 @@ export default function NavbarProfileMenu({
                 {email ? <p className="lp-nav-profile-menu-email">{email}</p> : null}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="lp-nav-profile-close"
-              aria-label="Close profile menu"
-            >
+            <button type="button" onClick={() => setOpen(false)} className="lp-nav-profile-close" aria-label="Close profile menu">
               <FiX size={16} />
             </button>
           </div>
           <div className="lp-nav-profile-menu-divider" />
-          <button type="button" className="lp-nav-profile-menu-item" onClick={goDashboard}>
-            <FiGrid size={16} /> Dashboard
-          </button>
-          <button
-            type="button"
-            className="lp-nav-profile-menu-item"
-            onClick={() => { close(); navigate(detailsPath) }}
-          >
-            <FiUser size={16} /> My details
-          </button>
-          <button
-            type="button"
-            className="lp-nav-profile-menu-item"
-            onClick={() => { close(); navigate(settingsLink) }}
-          >
-            <FiSettings size={16} /> Settings
-          </button>
-          <div className="lp-nav-profile-menu-divider" />
-          <button type="button" className="lp-nav-profile-menu-item lp-nav-profile-menu-logout" onClick={handleLogout}>
-            <FiLogOut size={16} /> Logout
-          </button>
+          {menuItems}
         </div>
       )}
     </div>

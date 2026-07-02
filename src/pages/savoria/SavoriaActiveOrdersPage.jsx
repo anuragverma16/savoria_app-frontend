@@ -1,32 +1,40 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiArrowLeft, FiClock, FiChevronRight } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 
-export default function SavoriaOrderHistoryPage() {
+const ACTIVE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready'])
+
+export default function SavoriaActiveOrdersPage() {
   const navigate = useNavigate()
-  const { orders, restaurant } = useSavoriaGuest()
+  const { orders, restaurant, paths } = useSavoriaGuest()
+
+  const activeOrders = useMemo(
+    () => orders.filter((o) => ACTIVE_STATUSES.has(o.status)),
+    [orders],
+  )
 
   return (
     <div className="max-w-lg mx-auto pb-8">
       <header className="sticky top-0 z-20 sv-glass px-4 py-4 flex items-center gap-3">
-        <button type="button" onClick={() => navigate(-1)} className="sv-btn-ghost py-2 px-3">
+        <button type="button" onClick={() => navigate(paths.dashboard)} className="sv-btn-ghost py-2 px-3">
           <FiArrowLeft size={18} />
         </button>
-        <h1 className="sv-display font-bold text-lg flex-1">Order History</h1>
+        <h1 className="sv-display font-bold text-lg flex-1">Active Orders</h1>
       </header>
 
       <main className="px-4 py-4">
-        {orders.length === 0 ? (
+        {activeOrders.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-[var(--sv-text-muted)] mb-4">No orders yet</p>
-            <button type="button" onClick={() => navigate('/order/menu')} className="sv-btn-primary">
-              Start Ordering
+            <p className="text-[var(--sv-text-muted)] mb-4">No active orders right now</p>
+            <button type="button" onClick={() => navigate(paths.menu)} className="sv-btn-primary">
+              Browse Menu
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            {orders.map((order, i) => (
+            {activeOrders.map((order, i) => (
               <motion.button
                 key={order.id}
                 type="button"
@@ -52,14 +60,11 @@ export default function SavoriaOrderHistoryPage() {
                   <div className="text-right flex items-center gap-2">
                     <div>
                       <p className="font-bold text-[var(--sv-accent)]">₹{order.grandTotal}</p>
-                      <p className="text-xs text-[var(--sv-success)] capitalize">{order.status}</p>
+                      <p className="text-xs text-amber-400 capitalize">{order.status}</p>
                     </div>
                     <FiChevronRight className="text-[var(--sv-text-muted)]" />
                   </div>
                 </div>
-                <p className="text-xs text-[var(--sv-text-muted)] mt-2 truncate">
-                  {order.items.map((l) => `${l.qty}× ${l.name}`).join(', ')}
-                </p>
               </motion.button>
             ))}
           </div>

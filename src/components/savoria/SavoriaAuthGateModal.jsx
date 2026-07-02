@@ -9,6 +9,8 @@ import { setCredentials } from '../../store/slices/authSlice'
 import { hydrateTenantAfterAuth } from '../../utils/panelRole'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
+import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
+import { syncGuestOrderSessionAfterAuth } from '../../utils/syncGuestOrderSession'
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
@@ -90,12 +92,13 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
     applyAuthResult(result)
   }
 
-  const applyAuthResult = (result) => {
+  const applyAuthResult = async (result) => {
     const authPayload = result?.accessToken ? result : null
     const user = authPayload?.user || result
     const phoneHint = result?.phone || user?.phone
     const openSuperAdmin = Boolean(result?.isSuperAdmin)
       || shouldOpenSuperAdminPanel(user, phoneHint)
+    const scannedRid = loadSavoriaSession()?.rid
 
     superAdminLoginRef.current = openSuperAdmin
 
@@ -122,7 +125,12 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
           user: apiUser,
           memberships: authPayload.memberships,
           loginRole: 'user',
+          preferredRestaurantId: scannedRid,
         }, 'user')
+        await syncGuestOrderSessionAfterAuth(dispatch, {
+          user: apiUser,
+          memberships: authPayload.memberships,
+        })
       }
     }
 

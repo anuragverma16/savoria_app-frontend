@@ -11,6 +11,7 @@ import PlatformLayout from './layouts/PlatformLayout'
 import RestaurantLayout from './layouts/RestaurantLayout'
 import RestaurantBootstrap from './components/RestaurantBootstrap'
 import SuperAdminDashboard from './pages/dineflow/platform/SuperAdminDashboard'
+import AccountSettingsPage from './pages/dineflow/AccountSettingsPage'
 import AdminDashboard from './pages/dineflow/restaurant/AdminDashboard'
 import KitchenDisplay from './pages/dineflow/restaurant/KitchenDisplay'
 import TablesPage from './pages/dineflow/restaurant/TablesPage'
@@ -35,6 +36,8 @@ import SavoriaOrderLayout from './layouts/SavoriaOrderLayout'
 import SavoriaQrEntry from './pages/savoria/SavoriaQrEntry'
 import SavoriaUserDashboard from './pages/savoria/SavoriaUserDashboard'
 import SavoriaOrderHistoryPage from './pages/savoria/SavoriaOrderHistoryPage'
+import SavoriaActiveOrdersPage from './pages/savoria/SavoriaActiveOrdersPage'
+import SavoriaOrderDetailsPage from './pages/savoria/SavoriaOrderDetailsPage'
 import CustomerMenuQrEntry from './pages/savoria/CustomerMenuQrEntry'
 import SavoriaMenuPage from './pages/savoria/SavoriaMenuPage'
 import SavoriaCartPage from './pages/savoria/SavoriaCartPage'
@@ -175,10 +178,13 @@ export default function DineFlowApp() {
         <Route path="/order" element={<SavoriaOrderLayout />}>
           <Route index element={<SavoriaQrEntry />} />
           <Route path="dashboard" element={<SavoriaUserDashboard />} />
+          <Route path="settings" element={<AccountSettingsPage />} />
           <Route path="orders" element={<SavoriaOrderHistoryPage />} />
+          <Route path="orders/:orderId" element={<SavoriaOrderDetailsPage />} />
+          <Route path="active" element={<SavoriaActiveOrdersPage />} />
           <Route path="history" element={<SavoriaOrderHistoryPage />} />
           <Route path="tables" element={<UserTableBookPage />} />
-          <Route path="menu" element={<ScannedRestaurantGuard requireTable><UserMenuPage /></ScannedRestaurantGuard>} />
+          <Route path="menu" element={<ScannedRestaurantGuard requireTable><SavoriaMenuPage /></ScannedRestaurantGuard>} />
           <Route path="menu-browse" element={<ScannedRestaurantGuard requireTable><SavoriaMenuPage /></ScannedRestaurantGuard>} />
           <Route path="cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
           <Route path="checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
@@ -190,6 +196,7 @@ export default function DineFlowApp() {
           <Route path="/cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
           <Route path="/checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
           <Route path="/order-success/:orderId" element={<SavoriaOrderSuccessPage />} />
+          <Route path="/orders/:orderId" element={<SavoriaOrderDetailsPage />} />
           <Route path="/orders" element={<Navigate to="/order/history" replace />} />
         </Route>
 
@@ -199,6 +206,8 @@ export default function DineFlowApp() {
           </ProtectedRoute>
         }>
           <Route index element={<SuperAdminDashboard />} />
+          <Route path="settings" element={<AccountSettingsPage variant="platform" />} />
+          <Route path="profile" element={<Navigate to="/platform/settings" replace />} />
         </Route>
 
         <Route path="/restaurant/:restaurantId" element={
@@ -224,6 +233,8 @@ export default function DineFlowApp() {
           <Route path="coupons" element={<RoleGate allowed={['admin']}><CouponsPage /></RoleGate>} />
           <Route path="staff-team" element={<RoleGate allowed={['admin']}><StaffManagementPage /></RoleGate>} />
           <Route path="analytics" element={<RoleGate allowed={['admin']}><AnalyticsPage /></RoleGate>} />
+          <Route path="account" element={<RoleGate allowed={['admin', 'staff', 'user']}><AccountSettingsPage /></RoleGate>} />
+          <Route path="profile" element={<Navigate to="account" replace />} />
           <Route path="settings" element={<RoleGate allowed={['admin']}><SettingsPage /></RoleGate>} />
         </Route>
 

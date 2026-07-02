@@ -8,6 +8,7 @@ import {
 } from '../../utils/appToast'
 import { maskPhone } from '../../utils/savoriaOtp'
 import { sendWhatsappOtp, verifyWhatsappOtp } from '../../utils/savoriaWhatsappOtp'
+import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 
 const inputClass = 'sv-auth-input'
 const labelClass = 'sv-auth-label'
@@ -40,10 +41,14 @@ function PhoneField({ id = 'user-phone', value, onChange, label = 'Mobile number
 
 export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
   const isSignup = mode === 'signup'
+  const scannedSession = loadSavoriaSession() || {}
+  const scannedRestaurantName = scannedSession.restaurantName || ''
+  const scannedRestaurantId = scannedSession.rid || ''
+  const hasScannedRestaurant = Boolean(scannedRestaurantId && scannedRestaurantName)
   const [step, setStep] = useState('form')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [restaurantName, setRestaurantName] = useState('')
+  const [restaurantName, setRestaurantName] = useState(scannedRestaurantName)
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [maskedPhone, setMaskedPhone] = useState('')
@@ -76,7 +81,7 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
         showErrorToast('Name required', 'Enter your full name')
         return false
       }
-      if (!restaurantName.trim()) {
+      if (!hasScannedRestaurant && !restaurantName.trim()) {
         showErrorToast('Restaurant required', 'Enter restaurant name')
         return false
       }
@@ -141,7 +146,13 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
       const result = await verifyWhatsappOtp(
         phone,
         trimmed,
-        isSignup ? { name, restaurantName } : {},
+        isSignup
+          ? {
+            name,
+            restaurantName: hasScannedRestaurant ? scannedRestaurantName : restaurantName,
+            restaurantId: hasScannedRestaurant ? scannedRestaurantId : undefined,
+          }
+          : { restaurantId: scannedRestaurantId || undefined },
         isSignup ? 'signup' : 'login',
       )
 
@@ -246,15 +257,26 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
             <PhoneField value={phone} onChange={onPhoneChange} />
           </div>
           <div className="sv-auth-field-span">
-            <label className={labelClass} htmlFor="user-restaurant">Restaurant name</label>
-            <input
-              id="user-restaurant"
-              type="text"
-              value={restaurantName}
-              onChange={(e) => setRestaurantName(e.target.value)}
-              placeholder="Restaurant you visit"
-              className={inputClass}
-            />
+            {hasScannedRestaurant ? (
+              <div>
+                <label className={labelClass}>Restaurant</label>
+                <p className="sv-auth-input bg-white/5 text-white/80 cursor-default">
+                  {scannedRestaurantName}
+                </p>
+              </div>
+            ) : (
+              <>
+                <label className={labelClass} htmlFor="user-restaurant">Restaurant name</label>
+                <input
+                  id="user-restaurant"
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                  placeholder="Restaurant you visit"
+                  className={inputClass}
+                />
+              </>
+            )}
           </div>
         </div>
       ) : (
