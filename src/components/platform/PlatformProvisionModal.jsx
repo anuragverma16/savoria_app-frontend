@@ -1,7 +1,14 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
 import { FiX } from 'react-icons/fi'
+import toast from 'react-hot-toast'
 import PlatformProvisionForm from './PlatformProvisionForm'
+import PlatformProvisionOtpStep from './PlatformProvisionOtpStep'
+import {
+  normalizeProvisionPhone,
+  sendProvisionWhatsAppOtp,
+  validateProvisionForm,
+} from '../../utils/platformProvisionOtp'
 import './platform-provision.css'
 
 const TITLES = {
@@ -11,9 +18,15 @@ const TITLES = {
 }
 
 const SUBTITLES = {
-  restaurant: 'Create the restaurant and admin — login is mobile WhatsApp OTP only',
-  admin: 'Add admin with email + mobile for the selected restaurant',
-  staff: 'Add staff with email + mobile — they sign in on the Staff tab',
+  restaurant: 'Create the restaurant and admin — WhatsApp OTP verifies the admin mobile',
+  admin: 'Add admin with email + mobile — WhatsApp OTP required before saving',
+  staff: 'Add staff with email + mobile — WhatsApp OTP required before saving',
+}
+
+const OTP_SUBTITLES = {
+  restaurant: 'Enter the code sent to the admin mobile to create the restaurant',
+  admin: 'Enter the code sent to the admin mobile to finish provisioning',
+  staff: 'Enter the code sent to the staff mobile to finish provisioning',
 }
 
 export default function PlatformProvisionModal({
@@ -27,11 +40,37 @@ export default function PlatformProvisionModal({
   onClose,
   saving,
 }) {
+  const [step, setStep] = useState('details')
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [maskedPhone, setMaskedPhone] = useState('')
+  const [resendIn, setResendIn] = useState(0)
+  const [sendingOtp, setSendingOtp] = useState(false)
+
   const overlayRef = useRef(null)
   const modalRef = useRef(null)
   const headerRef = useRef(null)
   const actionsRef = useRef(null)
-  const animateKey = `${createMode}-${selectedRestaurant?._id || 'new'}-${open}`
+  const animateKey = `${createMode}-${selectedRestaurant?._id || 'new'}-${open}-${step}`
+
+  const resetOtpState = useCallback(() => {
+    setStep('details')
+    setOtp(['', '', '', '', '', ''])
+    setMaskedPhone('')
+    setResendIn(0)
+    setSendingOtp(false)
+  }, [])
+
+  useEffect(() => {
+    if (!open) resetOtpState()
+  }, [open, resetOtpState])
+
+  useEffect(() => {
+    if (resendIn <= 0) return undefined
+    const timer = setInterval(() => {
+      setResendIn((seconds) => (seconds > 1 ? seconds - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [resendIn])
 
   const animateIn = useCallback(() => {
     const tl = gsap.timeline()
@@ -72,6 +111,7 @@ export default function PlatformProvisionModal({
   }, [open, animateIn])
 
   const handleClose = () => {
+    if (saving) return
     if (!modalRef.current) {
       onClose()
       return
@@ -79,15 +119,62 @@ export default function PlatformProvisionModal({
     animateOut(onClose)
   }
 
+  const sendOtp = async (isResend = false) => {
+    if (isResend && resendIn > 0) return
+    const validationError = validateProvisionForm(createMode, form)
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
+    setSendingOtp(true)
+    try {
+      const result = await sendProvisionWhatsAppOtp(form.adminPhone)
+      setMaskedPhone(result.maskedPhone || normalizeProvisionPhone(form.adminPhone))
+      setResendIn(result.resendIn || 60)
+      if (!isResend) setStep('verify')
+      else {
+        setOtp(['', '', '', '', '', ''])
+        toast.success('New code sent')
+      }
+    } catch (err) {
+      if (err.response?.data?.resendIn) setResendIn(err.response.data.resendIn)
+      toast.error(err.response?.data?.message || 'Could not send WhatsApp code')
+    } finally {
+      setSendingOtp(false)
+    }
+  }
+
+  const handlePrimaryAction = async (e) => {
+    e.preventDefault()
+    if (saving || sendingOtp) return
+
+    if (step === 'details') {
+      await sendOtp(false)
+      return
+    }
+
+    const otpCode = otp.join('')
+    if (otpCode.length !== 6) {
+      toast.error('Enter the 6-digit verification code')
+      return
+    }
+    onSubmit({ otpCode })
+  }
+
   if (!open) return null
 
-  const submitLabel = saving
+  const primaryLabel = saving
     ? 'Saving...'
-    : createMode === 'restaurant'
-      ? 'Create restaurant'
-      : createMode === 'staff'
-        ? 'Add staff'
-        : 'Add admin'
+    : sendingOtp
+      ? 'Sending code...'
+      : step === 'details'
+        ? 'Send WhatsApp code'
+        : createMode === 'restaurant'
+          ? 'Verify & create restaurant'
+          : createMode === 'staff'
+            ? 'Verify & add staff'
+            : 'Verify & add admin'
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -111,10 +198,12 @@ export default function PlatformProvisionModal({
               Super Admin
             </p>
             <h3 id="pv-modal-title" className="text-lg font-bold text-stone-50 leading-tight">
-              {TITLES[createMode] || TITLES.admin}
+              {step === 'verify' ? 'Verify mobile number' : (TITLES[createMode] || TITLES.admin)}
             </h3>
             <p className="pv-modal-subtitle">
-              {SUBTITLES[createMode] || SUBTITLES.admin}
+              {step === 'verify'
+                ? (OTP_SUBTITLES[createMode] || OTP_SUBTITLES.admin)
+                : (SUBTITLES[createMode] || SUBTITLES.admin)}
             </p>
           </div>
           <button
@@ -127,39 +216,45 @@ export default function PlatformProvisionModal({
           </button>
         </div>
 
-        <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            if (saving) return
-            onSubmit(e)
-          }}
-          className="space-y-3"
-        >
-          <PlatformProvisionForm
-            createMode={createMode}
-            selectedRestaurant={selectedRestaurant}
-            form={form}
-            onFieldChange={onFieldChange}
-            onPhoneChange={onPhoneChange}
-            disabled={saving}
-            animateKey={animateKey}
-          />
+        <form onSubmit={handlePrimaryAction} className="space-y-3">
+          {step === 'details' ? (
+            <PlatformProvisionForm
+              createMode={createMode}
+              selectedRestaurant={selectedRestaurant}
+              form={form}
+              onFieldChange={onFieldChange}
+              onPhoneChange={onPhoneChange}
+              disabled={saving || sendingOtp}
+              animateKey={animateKey}
+            />
+          ) : (
+            <PlatformProvisionOtpStep
+              maskedPhone={maskedPhone}
+              otp={otp}
+              onOtpChange={setOtp}
+              onBack={() => setStep('details')}
+              onResend={() => sendOtp(true)}
+              resendIn={resendIn}
+              sending={sendingOtp}
+              disabled={saving}
+            />
+          )}
 
           <div ref={actionsRef} className="pv-modal-actions">
             <button
               type="button"
               onClick={handleClose}
-              disabled={saving}
+              disabled={saving || sendingOtp}
               className="pv-btn-ghost"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || sendingOtp}
               className="pv-btn-submit"
             >
-              {submitLabel}
+              {primaryLabel}
             </button>
           </div>
         </form>

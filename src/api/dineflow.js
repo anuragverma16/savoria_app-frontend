@@ -1,7 +1,15 @@
 import axios from 'axios'
 
+function resolveApiBaseUrl() {
+  const raw = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '')
+  if (raw.endsWith('/api')) return raw
+  return `${raw}/api`
+}
+
+export const API_BASE_URL = resolveApiBaseUrl()
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   timeout: 20000,
 })
 
@@ -92,6 +100,7 @@ export const platformAPI = {
   users: (params) => api.get('/platform/users', { params }),
   loginHistory: (params) => api.get('/platform/login-history', { params }),
   customerDashboard: (restaurantId, params) => api.get(`/platform/restaurants/${restaurantId}/customer-dashboard`, { params }),
+  sendProvisionWhatsAppOtp: (data) => api.post('/platform/provision/whatsapp-otp', data),
 }
 
 export const publicAPI = {

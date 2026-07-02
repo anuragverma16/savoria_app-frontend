@@ -2,7 +2,9 @@ import { useEffect, useRef } from 'react'
 import { io } from 'socket.io-client'
 import toast from 'react-hot-toast'
 
-const SOCKET_URL = import.meta.env.VITE_API_URL.replace('/api','')
+import { API_BASE_URL } from '../api/dineflow'
+
+const SOCKET_URL = API_BASE_URL.replace(/\/api\/?$/, '') || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5000')
 
 /**
  * useSocket — connects to Socket.io server and listens for real-time order events.

@@ -1,6 +1,7 @@
 /** Client-facing panel: admin | staff | user | superadmin */
 
 import { setActiveRestaurant, setImpersonating, setViewAsPanel, clearTenant } from '../store/slices/tenantSlice'
+import { shouldOpenSuperAdminPanel } from './superAdminPhone'
 
 export const RESTAURANT_SUSPENDED_MESSAGE = 'Restaurant suspended by super admin'
 
@@ -101,6 +102,13 @@ export function resolveAuthRestaurant(user, memberships = [], loginRole) {
 }
 
 export function hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole }, tabRole) {
+  if (isSuperAdminUser(user) && (loginRole === 'superadmin' || tabRole === 'superadmin')) {
+    dispatch(setImpersonating(false))
+    dispatch(setViewAsPanel(null))
+    dispatch(clearTenant())
+    return { membership: null, restaurant: null, role: 'superadmin' }
+  }
+
   const role = tabRole || loginRole || user?.role || 'user'
   const { membership, restaurant } = resolveAuthRestaurant(user, memberships, role)
 
@@ -158,6 +166,75 @@ export function getRedirectAfterLogin(user, membership) {
   if (user.role === 'user') return `/restaurant/${rid}/user`
   if (user.role === 'staff') return `/restaurant/${rid}/staff`
   return `/restaurant/${rid}/admin`
+}
+
+/** Navbar profile menu — dashboard destination by role */
+export function getNavbarDashboardPath(user, memberships = [], phoneHint) {
+  if (shouldOpenSuperAdminPanel(user, phoneHint)) return '/platform'
+  if (!user) return '/order/dashboard'
+
+  const activeMemberships = (memberships || []).filter((m) => m.isActive !== false)
+  const membership = activeMemberships[0] || { restaurant: user.restaurant }
+  return getRedirectAfterLogin(user, membership) || '/order/dashboard'
+}
+
+/** Super admin may preview admin/staff panels when those roles are provisioned */
+const SA_PREVIEW_KEY = 'sa_provision_preview'
+
+export function grantProvisionPreview(restaurantId, panel, ttlMs = 5 * 60 * 1000) {
+  if (!restaurantId || !panel) return
+  try {
+    sessionStorage.setItem(SA_PREVIEW_KEY, JSON.stringify({
+      restaurantId: String(restaurantId),
+      panel,
+      until: Date.now() + ttlMs,
+    }))
+  } catch { /* ignore */ }
+}
+
+export function getProvisionPreviewGrant(restaurantId) {
+  if (!restaurantId) return null
+  try {
+    const raw = sessionStorage.getItem(SA_PREVIEW_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (Date.now() > parsed.until) {
+      sessionStorage.removeItem(SA_PREVIEW_KEY)
+      return null
+    }
+    if (String(restaurantId) !== String(parsed.restaurantId)) return null
+    return parsed.panel
+  } catch {
+    return null
+  }
+}
+
+/** Super admin opens Admin/Staff panels when those roles exist; Customer is always available */
+export function getSuperAdminPreviewPanels(restaurant) {
+  const counts = restaurant?.userCounts || {}
+  const hasAdmin = (counts.admins ?? 0) > 0
+  const hasStaff = (counts.staff ?? 0) > 0
+  const grant = restaurant?._id ? getProvisionPreviewGrant(restaurant._id) : null
+  const panels = []
+  if (hasAdmin || grant === 'admin') panels.push('admin')
+  if (hasStaff || grant === 'staff') panels.push('staff')
+  panels.push('user')
+  return [...new Set(panels)]
+}
+
+export function isSuperAdminPreviewPanel(restaurant, panelId) {
+  return getSuperAdminPreviewPanels(restaurant).includes(panelId)
+}
+
+export function getSuperAdminPreviewPath(restaurant, panelId = 'user') {
+  const rid = restaurant?._id
+  if (!rid) return '/platform'
+  const allowed = getSuperAdminPreviewPanels(restaurant)
+  const panel = allowed.includes(panelId) ? panelId : (allowed[0] || 'user')
+  const base = `/restaurant/${rid}`
+  if (panel === 'user') return `${base}/user`
+  if (panel === 'staff') return `${base}/staff`
+  return `${base}/admin`
 }
 
 /** Valid login tab roles for the unified sign-in page */

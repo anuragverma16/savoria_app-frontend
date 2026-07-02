@@ -22,7 +22,7 @@ function otpError(err, fallback) {
     return error
   }
 
-  if (/not registered|sign up first|already registered|please log in/i.test(message)) {
+  if (/not registered|sign up first|already registered|log in instead|super admin mobile|cannot be assigned/i.test(message)) {
     const error = new Error(message)
     if (err.response?.data?.resendIn) error.resendIn = err.response.data.resendIn
     return error

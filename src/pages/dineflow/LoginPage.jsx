@@ -7,7 +7,8 @@ import {
   FiMaximize2, FiZap, FiBarChart2, FiCheck,
 } from 'react-icons/fi'
 import WhatsappOtpAuthForm from '../../components/dineflow/WhatsappOtpAuthForm'
-import { getRedirectAfterLogin, hydrateTenantAfterAuth, normalizeLoginRole, shouldBlockSuspendedRestaurant, RESTAURANT_SUSPENDED_MESSAGE } from '../../utils/panelRole'
+import { getNavbarDashboardPath } from '../../utils/panelRole'
+import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import ThemeToggle from '../../components/dineflow/ThemeToggle'
 import BrandLogo from '../../components/dineflow/BrandLogo'
@@ -87,9 +88,15 @@ export default function DineFlowLogin() {
     if (m === 'signup') setRole('user')
   }
 
-  const redirect = (user, memberships, loginRole) => {
-    if (user.platformRole === 'superadmin' || user.role === 'superadmin') {
-      hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole: 'superadmin' }, 'superadmin')
+  const redirect = (user, memberships, loginRole, isSuperAdminFlag = false) => {
+    const openPlatform = isSuperAdminFlag || shouldOpenSuperAdminPanel(user, user?.phone)
+    if (openPlatform) {
+      const superUser = {
+        ...user,
+        platformRole: 'superadmin',
+        role: 'superadmin',
+      }
+      hydrateTenantAfterAuth(dispatch, { user: superUser, memberships, loginRole: 'superadmin' }, 'superadmin')
       resetPageLocks()
       navigate('/platform', { replace: true })
       return
@@ -138,7 +145,7 @@ export default function DineFlowLogin() {
 
   const handleOtpAuthSuccess = (result, loginRole) => {
     toast.success(welcomeMessage(result.user))
-    redirect(result.user, result.memberships, loginRole || 'user')
+    redirect(result.user, result.memberships, loginRole, Boolean(result.isSuperAdmin))
   }
 
   useLayoutEffect(() => {

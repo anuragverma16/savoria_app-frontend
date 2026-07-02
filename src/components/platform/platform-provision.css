@@ -323,3 +323,51 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.pv-otp-banner {
+  display: flex;
+  gap: 0.875rem;
+  align-items: flex-start;
+  padding: 0.875rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.pv-otp-banner-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(34, 197, 94, 0.15);
+  color: #86efac;
+  flex-shrink: 0;
+}
+
+.pv-otp-digit {
+  width: 2.5rem;
+  height: 3rem;
+  text-align: center;
+  font-size: 1.125rem;
+  font-weight: 700;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fafaf9;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pv-otp-digit:focus {
+  outline: none;
+  border-color: rgba(249, 115, 22, 0.5);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+}
+
+@media (min-width: 640px) {
+  .pv-otp-digit {
+    width: 2.75rem;
+    height: 3.25rem;
+  }
+}

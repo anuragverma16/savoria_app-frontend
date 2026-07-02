@@ -9,6 +9,7 @@ import BrandMark from './BrandMark'
 import NavbarProfileMenu from './NavbarProfileMenu'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
+import { getNavbarDashboardPath } from '../../utils/panelRole'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 
 const NAV = [
@@ -33,7 +34,7 @@ export default function SiteNavbar({ variant = 'light' }) {
   const bookNowRef = useRef(null)
   const location = useLocation()
   const navigate = useNavigate()
-  const { user, accessToken } = useSelector((s) => s.auth)
+  const { user, accessToken, memberships } = useSelector((s) => s.auth)
   const guestAuth = useSavoriaGuestOptional()
   const savoriaAuth = loadSavoriaSession()?.auth
   const isLoggedIn = Boolean(
@@ -149,7 +150,7 @@ export default function SiteNavbar({ variant = 'light' }) {
         navigate('/platform')
         return
       }
-      navigate(ORDER_ENTRY)
+      navigate(getNavbarDashboardPath(user, memberships, phone))
       return
     }
     guestAuth?.openAuthModal({
@@ -287,7 +288,10 @@ export default function SiteNavbar({ variant = 'light' }) {
                 {isLoggedIn ? (
                   <button
                     type="button"
-                    onClick={() => { closeMenu(); navigate(ORDER_ENTRY) }}
+                    onClick={() => {
+                      closeMenu()
+                      navigate(getNavbarDashboardPath(user, memberships, user?.phone || savoriaAuth?.phone))
+                    }}
                     className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >
                     Dashboard
@@ -321,7 +325,7 @@ export default function SiteNavbar({ variant = 'light' }) {
 
               {isLoggedIn && (
                 <div className="lp-nav-mobile-profile-block">
-                  <NavbarProfileMenu {...profileProps} mobile />
+                  <NavbarProfileMenu {...profileProps} mobile onClose={closeMenu} />
                 </div>
               )}
 

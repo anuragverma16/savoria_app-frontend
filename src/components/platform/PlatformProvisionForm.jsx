@@ -238,6 +238,9 @@ export default function PlatformProvisionForm({
           disabled={disabled}
           phoneBoxRef={phoneBoxRef}
         />
+        <p className="relative z-[1] text-[11px] text-stone-500 sm:col-span-2 -mt-1">
+          Use a personal mobile for {personLabel.toLowerCase()} login — not the super admin number. OTP will be sent to this WhatsApp number.
+        </p>
       </div>
     </div>
   )

@@ -699,6 +699,67 @@ select option { background-color: #fff; color: #0a0a0a; }
   padding: 0.55rem 0.6rem;
 }
 
+.lp-nav-profile-menu-head--with-close {
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.lp-nav-profile-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lp-nav-profile-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.lp-nav-profile-menu--dark .lp-nav-profile-close {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.lp-nav-profile-menu--dark .lp-nav-profile-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.lp-nav-profile-chevron {
+  flex-shrink: 0;
+  opacity: 0.7;
+  transition: transform 0.2s ease;
+}
+
+.lp-nav-profile-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.lp-nav-profile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #334155;
+  text-align: left;
+  transition: background 0.15s, color 0.15s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
 .lp-nav-profile-menu-avatar {
   display: inline-flex;
   align-items: center;
@@ -746,20 +807,6 @@ select option { background-color: #fff; color: #0a0a0a; }
 
 .lp-nav-profile-menu--dark .lp-nav-profile-menu-divider {
   background: rgba(255, 255, 255, 0.08);
-}
-
-.lp-nav-profile-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  width: 100%;
-  padding: 0.55rem 0.65rem;
-  border-radius: 0.65rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #334155;
-  text-align: left;
-  transition: background 0.15s, color 0.15s;
 }
 
 .lp-nav-profile-menu--dark .lp-nav-profile-menu-item {

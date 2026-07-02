@@ -16,6 +16,7 @@ import { showErrorToast, showSuccessToast } from '../../../utils/appToast'
 import PlatformProvisionModal from '../../../components/platform/PlatformProvisionModal'
 import PlatformUsersPanel from '../../../components/platform/PlatformUsersPanel'
 import { normalizeProvisionPhone } from '../../../utils/platformProvisionOtp'
+import { getSuperAdminPreviewPanels, getSuperAdminPreviewPath, grantProvisionPreview } from '../../../utils/panelRole'
 
 const FOOD_COLORS = ['#f97316', '#ef4444', '#f59e0b', '#84cc16', '#fb923c', '#dc2626', '#eab308']
 
@@ -147,13 +148,15 @@ export default function SuperAdminDashboard() {
     }
   }
 
-  const enterRestaurant = (restaurant, panelId = 'admin') => {
-    const panel = PANELS.find((p) => p.id === panelId) || PANELS[0]
+  const enterRestaurant = (restaurant, panelId = 'user') => {
+    const allowed = getSuperAdminPreviewPanels(restaurant)
+    const targetPanel = allowed.includes(panelId) ? panelId : (allowed[0] || 'user')
+    const panel = PANELS.find((p) => p.id === targetPanel) || PANELS.find((p) => p.id === 'user')
     dispatch(setActiveRestaurant(restaurant))
     dispatch(setImpersonating(true))
-    dispatch(setViewAsPanel(panelId))
-    navigate(`/restaurant/${restaurant._id}/${panel.path}`)
-    toast.success(`${restaurant.name} — ${panel.label}`)
+    dispatch(setViewAsPanel(targetPanel))
+    navigate(getSuperAdminPreviewPath(restaurant, targetPanel))
+    toast.success(`${restaurant.name} — ${panel?.label || 'Customer'}`)
   }
 
   const toggleStatus = async (r) => {
@@ -229,13 +232,16 @@ export default function SuperAdminDashboard() {
     })
   }
 
-  const handleCreateAdmin = async (e) => {
-    e.preventDefault()
+  const handleProvisionSubmit = async ({ otpCode }) => {
     if (submitLockRef.current || saving) return
 
     const phone = normalizeProvisionPhone(adminForm.adminPhone)
     if (phone.length < 10) {
       toast.error('Enter a valid 10-digit mobile number')
+      return
+    }
+    if (!otpCode || String(otpCode).length !== 6) {
+      toast.error('Enter the 6-digit verification code')
       return
     }
 
@@ -246,7 +252,11 @@ export default function SuperAdminDashboard() {
         name: adminForm.adminName.trim(),
         email: adminForm.adminEmail.trim().toLowerCase(),
         phone,
+        otpCode,
       }
+
+      let createdRestaurantId = selectedRestaurantId
+      let previewPanel = 'user'
 
       if (createMode === 'restaurant') {
         const { data } = await platformAPI.createRestaurant({
@@ -255,21 +265,42 @@ export default function SuperAdminDashboard() {
           adminName: payloadBase.name,
           adminEmail: payloadBase.email,
           adminPhone: payloadBase.phone,
+          otpCode,
         }, createIdempotencyKeyRef.current)
+        createdRestaurantId = data.restaurant._id
+        previewPanel = 'admin'
         toast.success(`Restaurant created. ID: ${data.restaurant._id}`)
       } else if (createMode === 'staff') {
-        const { data } = await platformAPI.createRestaurantStaff(selectedRestaurantId, {
+        await platformAPI.createRestaurantStaff(selectedRestaurantId, {
           ...payloadBase,
           role: 'staff',
         })
-        toast.success(`Staff added: ${data.user.email}`)
+        previewPanel = 'staff'
+        toast.success(`Staff added for ${selectedRestaurant?.name || 'restaurant'}`)
       } else {
-        const { data } = await platformAPI.createRestaurantAdmin(selectedRestaurantId, payloadBase)
-        toast.success(`Admin added: ${data.admin.email}`)
+        await platformAPI.createRestaurantAdmin(selectedRestaurantId, payloadBase)
+        previewPanel = 'admin'
+        toast.success(`Admin added for ${selectedRestaurant?.name || 'restaurant'}`)
       }
+
       setShowCreateModal(false)
       setAdminForm(EMPTY_ADMIN_FORM)
-      load()
+
+      const [{ data: overviewData }, { data: refreshed }] = await Promise.all([
+        platformAPI.overview(),
+        platformAPI.restaurants(),
+      ])
+      setOverview(overviewData.overview)
+      const list = refreshed.restaurants || []
+      setRestaurants(list)
+
+      const updated = list.find((r) => String(r._id) === String(createdRestaurantId))
+      if (updated) {
+        grantProvisionPreview(updated._id, previewPanel)
+        enterRestaurant(updated, previewPanel)
+      } else {
+        load()
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save')
     } finally {
@@ -612,14 +643,16 @@ export default function SuperAdminDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-stone-100">Restaurants & admins</h2>
-                <p className="text-stone-500 text-sm">Add restaurants, admins, and staff with restaurant name, phone, and email verification</p>
+                <p className="text-stone-500 text-sm">
+                  Provision restaurants with WhatsApp OTP — add admin or staff only when missing
+                </p>
               </div>
               <button
                 type="button"
                 onClick={openCreateRestaurant}
                 className="df-btn-primary shrink-0"
               >
-                <FiPlus size={16} /> Add restaurant & admin
+                <FiPlus size={16} /> {restaurants.length === 0 ? 'Add restaurant & admin' : 'New restaurant'}
               </button>
             </div>
 
@@ -636,7 +669,14 @@ export default function SuperAdminDashboard() {
               </div>
             ) : (
               <div className="space-y-4">
-                {restaurants.map((r) => (
+                {restaurants.map((r) => {
+                  const adminCount = r.userCounts?.admins ?? 0
+                  const staffCount = r.userCounts?.staff ?? 0
+                  const customerCount = r.userCounts?.customers ?? 0
+                  const needsAdmin = adminCount === 0
+                  const needsStaff = staffCount === 0
+
+                  return (
                   <motion.div
                     key={r._id}
                     layout
@@ -665,67 +705,89 @@ export default function SuperAdminDashboard() {
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/25 font-medium">
-                          {r.userCounts?.teamTotal ?? 0} admin & staff
+                          {r.userCounts?.teamTotal ?? 0} team
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-300 border border-orange-500/25">
-                          {r.userCounts?.admins ?? 0} admin
+                          {adminCount} admin{adminCount === 1 ? '' : 's'}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/15 text-green-300 border border-green-500/25">
-                          {r.userCounts?.staff ?? 0} staff
+                          {staffCount} staff
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 border border-violet-500/25">
-                          {r.userCounts?.customers ?? 0} customers
+                          {customerCount} customer{customerCount === 1 ? '' : 's'}
                         </span>
                       </div>
                     </div>
 
-                    <ToggleGroup>
-                      {PANELS.map((p) => (
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      {needsAdmin ? (
+                        <button
+                          type="button"
+                          onClick={() => openAddAdmin(r._id)}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-blue-500/35 bg-blue-500/15 text-blue-200 hover:bg-blue-500/25 transition-all shrink-0 text-xs font-semibold"
+                        >
+                          <FiUserPlus size={14} />
+                          Add admin
+                        </button>
+                      ) : (
                         <ToggleButton
-                          key={p.id}
                           active={false}
-                          onClick={() => enterRestaurant(r, p.id)}
-                          color={p.color}
+                          onClick={() => enterRestaurant(r, 'admin')}
+                          color="orange"
                           variant="dark"
                           className="px-4 py-2 text-xs"
                         >
-                          {p.label}
+                          Admin
                         </ToggleButton>
-                      ))}
-                    </ToggleGroup>
+                      )}
 
-                    <button
-                      type="button"
-                      onClick={() => openAddAdmin(r._id)}
-                      className="p-2.5 rounded-xl border border-blue-500/35 bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 transition-all shrink-0"
-                      title="Add admin"
-                    >
-                      <FiUserPlus size={16} />
-                    </button>
+                      {needsStaff ? (
+                        <button
+                          type="button"
+                          onClick={() => openAddStaff(r._id)}
+                          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-lime-500/35 bg-lime-500/15 text-lime-200 hover:bg-lime-500/25 transition-all shrink-0 text-xs font-semibold"
+                        >
+                          <FiUsers size={14} />
+                          Add staff
+                        </button>
+                      ) : (
+                        <ToggleButton
+                          active={false}
+                          onClick={() => enterRestaurant(r, 'staff')}
+                          color="gold"
+                          variant="dark"
+                          className="px-4 py-2 text-xs"
+                        >
+                          Staff
+                        </ToggleButton>
+                      )}
 
-                    <button
-                      type="button"
-                      onClick={() => openAddStaff(r._id)}
-                      className="p-2.5 rounded-xl border border-lime-500/35 bg-lime-500/15 text-lime-300 hover:bg-lime-500/25 transition-all shrink-0"
-                      title="Add staff"
-                    >
-                      <FiUsers size={16} />
-                    </button>
+                      <ToggleButton
+                        active={false}
+                        onClick={() => enterRestaurant(r, 'user')}
+                        color="tomato"
+                        variant="dark"
+                        className="px-4 py-2 text-xs"
+                      >
+                        Customer
+                      </ToggleButton>
 
-                    <button
-                      type="button"
-                      onClick={() => toggleStatus(r)}
-                      className={`p-2.5 rounded-xl border transition-all shrink-0 ${
-                        r.status === 'active'
-                          ? 'bg-amber-500/15 border-amber-500/35 text-amber-300 hover:bg-amber-500/25'
-                          : 'bg-lime-500/15 border-lime-500/35 text-lime-300 hover:bg-lime-500/25'
-                      }`}
-                      title={r.status === 'active' ? 'Suspend' : 'Activate'}
-                    >
-                      {r.status === 'active' ? <FiPause size={16} /> : <FiPlay size={16} />}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(r)}
+                        className={`p-2.5 rounded-xl border transition-all shrink-0 ${
+                          r.status === 'active'
+                            ? 'bg-amber-500/15 border-amber-500/35 text-amber-300 hover:bg-amber-500/25'
+                            : 'bg-lime-500/15 border-lime-500/35 text-lime-300 hover:bg-lime-500/25'
+                        }`}
+                        title={r.status === 'active' ? 'Suspend' : 'Activate'}
+                      >
+                        {r.status === 'active' ? <FiPause size={16} /> : <FiPlay size={16} />}
+                      </button>
+                    </div>
                   </motion.div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </motion.div>
@@ -742,7 +804,7 @@ export default function SuperAdminDashboard() {
           ...adminForm,
           adminPhone: e.target.value.replace(/\D/g, '').slice(0, 10),
         })}
-        onSubmit={handleCreateAdmin}
+        onSubmit={handleProvisionSubmit}
         onClose={() => setShowCreateModal(false)}
         saving={saving}
       />
