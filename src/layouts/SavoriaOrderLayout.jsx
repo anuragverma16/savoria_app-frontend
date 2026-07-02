@@ -1,6 +1,6 @@
 import { Link, Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
-import { FiGrid, FiLink, FiShoppingBag, FiHome, FiLogOut } from 'react-icons/fi'
+import { FiGrid, FiLink, FiShoppingBag, FiHome, FiLogOut, FiClock } from 'react-icons/fi'
 import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
@@ -13,6 +13,7 @@ const NAV = [
   { to: '/order/dashboard', label: 'Home', icon: FiGrid, end: true },
   { to: '/order/tables', label: 'Book table', icon: FiLink },
   { to: '/order/menu', label: 'Menu', icon: FiShoppingBag },
+  { to: '/order/history', label: 'Orders', icon: FiClock },
 ]
 
 function OrderShell() {

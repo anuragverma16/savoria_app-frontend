@@ -11,6 +11,7 @@ import UserOrderHistoryList from '../../../components/dineflow/UserOrderHistoryL
 import { menuItemId } from '../../../store/slices/cartSlice'
 import { loadUserTableSession, hasQrTableSession } from '../../../utils/userTableSession'
 import { useOrderPanelPaths } from '../../../utils/orderPanelPaths'
+import { isSuperAdminUser } from '../../../utils/panelRole'
 import SavoriaBrandedQrScanCard from '../../../components/savoria/SavoriaBrandedQrScanCard'
 import SavoriaQrScanModal from '../../../components/savoria/SavoriaQrScanModal'
 
@@ -51,8 +52,9 @@ function MenuSkeleton() {
 
 export default function UserDashboard() {
   const [searchParams] = useSearchParams()
+  const highlightOrderId = searchParams.get('highlight')
   const { user } = useSelector((s) => s.auth)
-  const { activeRestaurant } = useSelector((s) => s.tenant)
+  const { activeRestaurant, impersonating } = useSelector((s) => s.tenant)
   const [scanOpen, setScanOpen] = useState(() => searchParams.get('scan') === '1')
   const [menuItems, setMenuItems] = useState([])
   const [categories, setCategories] = useState([])
@@ -64,6 +66,7 @@ export default function UserDashboard() {
   const [ordersPreview, setOrdersPreview] = useState(false)
   const [tableSession, setTableSession] = useState(null)
   const panelPaths = useOrderPanelPaths()
+  const isSuperAdminPreview = isSuperAdminUser(user) && impersonating && !panelPaths.isOrderPanel
   const rid = panelPaths.rid || activeRestaurant?._id
   const tablesPath = panelPaths.tables
   const menuPath = panelPaths.menu
@@ -95,15 +98,20 @@ export default function UserDashboard() {
 
   useEffect(() => {
     if (!rid) return
-    restaurantAPI(rid).myOrders()
-      .then(({ data }) => {
-        setOrders(data.orders || [])
-        setOrdersPreview(Boolean(data.preview))
-      })
-      .catch(() => {
-        setOrders([])
-        setOrdersPreview(false)
-      })
+    const load = () => {
+      restaurantAPI(rid).myOrders()
+        .then(({ data }) => {
+          setOrders(data.orders || [])
+          setOrdersPreview(Boolean(data.preview))
+        })
+        .catch(() => {
+          setOrders([])
+          setOrdersPreview(false)
+        })
+    }
+    load()
+    const interval = setInterval(load, 15000)
+    return () => clearInterval(interval)
   }, [rid])
 
   const popularIds = useMemo(
@@ -163,7 +171,7 @@ export default function UserDashboard() {
   const pendingOrders = orders.filter((o) => !['served', 'completed', 'cancelled'].includes(o.status)).length
   const tableBooked = hasQrTableSession(rid)
   const welcome = displayName(user, tableSession)
-  const orderPath = tableBooked ? menuPath : tablesPath
+  const orderPath = isSuperAdminPreview || tableBooked ? menuPath : tablesPath
 
   useEffect(() => {
     if (panelPaths.isOrderPanel && searchParams.get('scan') === '1') setScanOpen(true)
@@ -212,7 +220,20 @@ export default function UserDashboard() {
           </div>
         </motion.header>
 
-        {tableBooked ? (
+        {isSuperAdminPreview && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10"
+          >
+            <p className="text-amber-200 text-sm font-semibold">Customer panel preview</p>
+            <p className="text-amber-100/70 text-xs mt-1">
+              This is how signed-in customers see menu and orders. Table QR scanning is only for guests at the restaurant — not shown here.
+            </p>
+          </motion.div>
+        )}
+
+        {!isSuperAdminPreview && tableBooked ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -238,7 +259,7 @@ export default function UserDashboard() {
               </Link>
             </div>
           </motion.div>
-        ) : panelPaths.isOrderPanel ? (
+        ) : !isSuperAdminPreview && panelPaths.isOrderPanel ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -251,7 +272,7 @@ export default function UserDashboard() {
               onClick={() => setScanOpen(true)}
             />
           </motion.div>
-        ) : (
+        ) : !isSuperAdminPreview ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -270,7 +291,7 @@ export default function UserDashboard() {
               </Link>
             </div>
           </motion.div>
-        )}
+        ) : null}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {[
@@ -308,7 +329,7 @@ export default function UserDashboard() {
               to={orderPath}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm font-semibold hover:bg-emerald-500/25 shrink-0"
             >
-              {tableBooked ? 'Full menu' : 'Link table to order'} <FiArrowRight size={14} />
+              {isSuperAdminPreview || tableBooked ? 'Full menu' : 'Link table to order'} <FiArrowRight size={14} />
             </Link>
           </div>
 
@@ -427,6 +448,7 @@ export default function UserDashboard() {
             orders={ordersWithRestaurant}
             defaultRestaurant={activeRestaurant}
             emptyMessage="No orders yet."
+            highlightOrderId={highlightOrderId}
           />
         </section>
       </div>

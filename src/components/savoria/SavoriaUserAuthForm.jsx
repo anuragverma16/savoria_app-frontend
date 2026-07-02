@@ -48,10 +48,15 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
   const [loading, setLoading] = useState(false)
   const [maskedPhone, setMaskedPhone] = useState('')
   const [resendIn, setResendIn] = useState(0)
+  const [otpSent, setOtpSent] = useState(false)
   const successRef = useRef(null)
   const otpRefs = useRef([])
 
-  const onPhoneChange = (e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+  const onPhoneChange = (e) => {
+    setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))
+    setOtpSent(false)
+    setOtp(['', '', '', '', '', ''])
+  }
 
   useEffect(() => {
     if (resendIn <= 0) return undefined
@@ -88,6 +93,7 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
       const result = await sendWhatsappOtp(phone, isSignup ? 'signup' : 'login')
       setMaskedPhone(result.maskedPhone || maskPhone(phone))
       setResendIn(result.resendIn || DEFAULT_RESEND_SECONDS)
+      setOtpSent(true)
       showOtpSentToast(result.maskedPhone || maskPhone(phone), {
         whatsapp: true,
         sender: 'Savoria SaaS Team',
@@ -111,9 +117,6 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
     next[index] = value.slice(-1)
     setOtp(next)
     if (value && index < 5) otpRefs.current[index + 1]?.focus()
-    if (next.every((d) => d) && next.join('').length === 6) {
-      handleVerify(next.join(''))
-    }
   }
 
   const handleOtpKeyDown = (index, e) => {
@@ -123,17 +126,27 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
   }
 
   const handleVerify = async (code) => {
+    if (!otpSent) {
+      showErrorToast('Code required', 'Send WhatsApp code first')
+      return
+    }
+    const trimmed = String(code || otp.join('')).trim()
+    if (trimmed.length !== 6) {
+      showErrorToast('Incomplete code', 'Enter all 6 digits from WhatsApp')
+      return
+    }
+
     setLoading(true)
     try {
       const result = await verifyWhatsappOtp(
         phone,
-        code || otp.join(''),
+        trimmed,
         isSignup ? { name, restaurantName } : {},
         isSignup ? 'signup' : 'login',
       )
 
       setStep('success')
-      setTimeout(() => onSuccess?.(result), 900)
+      setTimeout(() => onSuccess?.({ ...result, phone }), 900)
     } catch (err) {
       showOtpVerifyErrorToast(err.message)
       setOtp(['', '', '', '', '', ''])
@@ -166,7 +179,7 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
   if (step === 'otp') {
     return (
       <div className="sv-auth-otp-step">
-        <button type="button" onClick={() => setStep('form')} className="sv-auth-back-btn">
+        <button type="button" onClick={() => { setStep('form'); setOtpSent(false) }} className="sv-auth-back-btn">
           <FiArrowLeft size={14} /> Back
         </button>
         <p className="sv-auth-otp-hint">
@@ -195,7 +208,7 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
         <div className="sv-auth-actions-row">
           <button
             type="button"
-            disabled={loading || otp.join('').length < 6}
+            disabled={loading || !otpSent || otp.join('').length < 6}
             onClick={() => handleVerify()}
             className={btnPrimary}
           >

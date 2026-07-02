@@ -3,20 +3,19 @@ import { motion } from 'framer-motion'
 import { FiArrowLeft, FiShoppingBag } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import SavoriaCartLineItem from '../../components/savoria/SavoriaCartLineItem'
-import { GST_RATE } from '../../contexts/SavoriaGuestContext'
 
 export default function SavoriaCartPage() {
   const navigate = useNavigate()
   const {
-    cart, totals, updateCartQty, removeFromCart, requireAuth, restaurant, isAuthenticated,
+    cart, totals, updateCartQty, removeFromCart, requireAuth, restaurant, isAuthenticated, paths, GST_RATE,
   } = useSavoriaGuest()
 
   const handleCheckout = () => {
     if (isAuthenticated) {
-      navigate('/order/checkout')
+      navigate(paths.checkout)
       return
     }
-    requireAuth('/order/checkout')
+    requireAuth(paths.checkout)
   }
 
   if (cart.length === 0) {
@@ -27,7 +26,7 @@ export default function SavoriaCartPage() {
         </div>
         <h2 className="sv-display text-xl font-bold text-[var(--sv-text)] mb-2">Your cart is empty</h2>
         <p className="text-sm text-[var(--sv-text-muted)] mb-6">Add delicious items from our menu to get started</p>
-        <button type="button" onClick={() => navigate('/order/menu')} className="sv-btn-primary">
+        <button type="button" onClick={() => navigate(paths.menu)} className="sv-btn-primary">
           Browse Menu
         </button>
       </div>
@@ -37,7 +36,7 @@ export default function SavoriaCartPage() {
   return (
     <div className="pb-28 max-w-lg mx-auto">
       <header className="sticky top-0 z-20 sv-glass px-4 py-4 flex items-center gap-3">
-        <button type="button" onClick={() => navigate('/order/menu')} className="sv-btn-ghost py-2 px-3">
+        <button type="button" onClick={() => navigate(paths.menu)} className="sv-btn-ghost py-2 px-3">
           <FiArrowLeft size={18} />
         </button>
         <h1 className="sv-display font-bold text-lg flex-1">Your Cart</h1>
@@ -45,6 +44,14 @@ export default function SavoriaCartPage() {
       </header>
 
       <main className="px-4 py-4 space-y-3">
+        <div className="sv-glass rounded-2xl p-4 mb-2">
+          <p className="text-xs text-[var(--sv-text-muted)] uppercase tracking-wider">Ordering from</p>
+          <p className="font-bold text-[var(--sv-text)]">{restaurant.name}</p>
+          {restaurant.tableNumber && (
+            <p className="text-sm text-[var(--sv-accent)]">Table {restaurant.tableNumber}</p>
+          )}
+        </div>
+
         {cart.map((line) => (
           <motion.div
             key={line.id}
@@ -78,16 +85,15 @@ export default function SavoriaCartPage() {
             </div>
           )}
           <div className="border-t border-[var(--sv-border)] pt-3 flex justify-between font-bold text-lg">
-            <span className="text-[var(--sv-text)]">Grand Total</span>
-            <span className="text-[var(--sv-accent)]">₹{totals.grandTotal}</span>
+            <span className="text-[var(--sv-text)]">Total</span>
+            <span className="text-[var(--sv-accent)]">₹{totals.total}</span>
           </div>
-          <p className="text-xs text-[var(--sv-text-muted)]">Table {restaurant.tableNumber} · Dine-in</p>
         </div>
       </main>
 
       <div className="fixed bottom-0 inset-x-0 sv-sticky-bar md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:bottom-4 md:rounded-2xl">
         <button type="button" onClick={handleCheckout} className="sv-btn-primary w-full py-3.5">
-          Proceed to Checkout · ₹{totals.grandTotal}
+          Proceed to Checkout · ₹{totals.total}
         </button>
       </div>
     </div>

@@ -1,0 +1,325 @@
+/* Super Admin — add restaurant / admin / staff provision modal */
+
+.pv-modal-overlay {
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(10px);
+}
+
+.pv-modal-shell {
+  width: 100%;
+  max-width: 56rem; /* wider — ~896px */
+  background: linear-gradient(165deg, #1c1410 0%, #0f0a08 48%, #120d0b 100%);
+  border: 1px solid rgba(249, 115, 22, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 60px rgba(249, 115, 22, 0.08);
+}
+
+.pv-provision-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  .pv-provision-layout {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: stretch;
+  }
+
+  .pv-provision-layout--single {
+    grid-template-columns: 1fr;
+  }
+
+  .pv-provision-layout--restaurant-equal {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pv-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .pv-fields-grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pv-provision-box {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  height: 100%;
+}
+
+.pv-provision-box::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.06) 0%, transparent 55%);
+  pointer-events: none;
+}
+
+.pv-provision-box--restaurant {
+  border-color: rgba(249, 115, 22, 0.28);
+  background: linear-gradient(145deg, rgba(249, 115, 22, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.pv-provision-box--person {
+  border-color: rgba(59, 130, 246, 0.22);
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.pv-provision-box--staff {
+  border-color: rgba(34, 197, 94, 0.22);
+  background: linear-gradient(145deg, rgba(34, 197, 94, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.pv-field-label {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a8a29e;
+  margin-bottom: 0.5rem;
+}
+
+.pv-field-input {
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(12, 10, 9, 0.65);
+  color: #fafaf9;
+  font-size: 0.9375rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.pv-field-input:focus {
+  outline: none;
+  border-color: rgba(249, 115, 22, 0.55);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.12);
+}
+
+.pv-field-input::placeholder {
+  color: rgba(168, 162, 158, 0.65);
+}
+
+.pv-field-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pv-phone-box {
+  position: relative;
+  border-radius: 0.875rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: linear-gradient(160deg, rgba(34, 197, 94, 0.1) 0%, rgba(12, 10, 9, 0.8) 100%);
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  grid-column: 1 / -1;
+}
+
+.pv-phone-box.is-focused {
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
+.pv-phone-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.625rem;
+}
+
+.pv-phone-prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.25rem;
+  padding: 0 0.75rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.pv-phone-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.65rem 0.875rem;
+  padding-right: 2.25rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  color: #fafaf9;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  font-variant-numeric: tabular-nums;
+}
+
+.pv-phone-input:focus {
+  outline: none;
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+.pv-phone-input::placeholder {
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  color: rgba(168, 162, 158, 0.55);
+  font-size: 0.9rem;
+}
+
+.pv-phone-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.pv-phone-progress {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.pv-phone-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  transform-origin: left center;
+  width: 0%;
+}
+
+.pv-phone-meta {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: #78716c;
+  white-space: nowrap;
+}
+
+.pv-phone-meta strong {
+  color: #a8a29e;
+  font-weight: 600;
+}
+
+.pv-badge-otp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+}
+
+.pv-provision-box--restaurant-compact {
+  display: flex;
+  align-items: center;
+}
+
+.pv-restaurant-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.pv-restaurant-chip-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 1rem;
+  color: white;
+  background: linear-gradient(135deg, #f97316, #dc2626);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.25);
+}
+
+.pv-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pv-modal-header-text {
+  min-width: 0;
+}
+
+.pv-modal-subtitle {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .pv-modal-subtitle {
+    display: block;
+    font-size: 0.8125rem;
+    color: #78716c;
+    margin-top: 0.25rem;
+    line-height: 1.35;
+  }
+}
+
+.pv-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.pv-btn-ghost {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d6d3d1;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: background 0.2s, color 0.2s;
+}
+
+.pv-btn-ghost:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fafaf9;
+}
+
+.pv-btn-submit {
+  flex: 1;
+  padding: 0.7rem 1rem;
+  border-radius: 0.85rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  box-shadow: 0 10px 28px rgba(249, 115, 22, 0.28);
+  transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+}
+
+.pv-btn-submit:hover:not(:disabled) {
+  box-shadow: 0 12px 32px rgba(249, 115, 22, 0.38);
+}
+
+.pv-btn-submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

@@ -13,7 +13,7 @@ export default function PlatformLayout() {
 
   const handleLogout = () => {
     dispatch(logout())
-    navigate('/login?role=superadmin')
+    navigate('/')
   }
 
   return (

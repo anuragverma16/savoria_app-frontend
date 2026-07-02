@@ -8,11 +8,41 @@ import SavoriaCategoryFilter from '../../components/savoria/SavoriaCategoryFilte
 import SavoriaFoodCard from '../../components/savoria/SavoriaFoodCard'
 import SavoriaFoodDetailModal from '../../components/savoria/SavoriaFoodDetailModal'
 import SavoriaStickyCartBar from '../../components/savoria/SavoriaStickyCartBar'
+import OptimizedImage from '../../components/OptimizedImage'
 import toast from 'react-hot-toast'
+
+function MenuSkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {[1, 2, 3, 4, 5, 6].map((n) => (
+        <div key={n} className="sv-food-card animate-pulse">
+          <div className="aspect-[4/3] bg-[var(--sv-border)]/40" />
+          <div className="p-4 space-y-2">
+            <div className="h-4 bg-[var(--sv-border)]/40 rounded w-2/3" />
+            <div className="h-3 bg-[var(--sv-border)]/30 rounded w-full" />
+            <div className="h-3 bg-[var(--sv-border)]/30 rounded w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
 
 export default function SavoriaMenuPage() {
   const navigate = useNavigate()
-  const { restaurant, menuItems, addToCart, totals, requireAuth, isAuthenticated } = useSavoriaGuest()
+  const {
+    restaurant,
+    menuItems,
+    categories,
+    menuLoading,
+    menuError,
+    loadMenu,
+    addToCart,
+    totals,
+    requireAuth,
+    isAuthenticated,
+    paths,
+  } = useSavoriaGuest()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [selectedItem, setSelectedItem] = useState(null)
@@ -30,16 +60,21 @@ export default function SavoriaMenuPage() {
   }, [menuItems, search, category])
 
   const handleQuickAdd = (item) => {
-    addToCart(item, 1)
-    toast.success(`${item.name} added`)
+    if (item.isAvailable === false) {
+      toast.error(`${item.name} is currently unavailable`)
+      return
+    }
+    if (addToCart(item, 1)) {
+      toast.success(`${item.name} added`)
+    }
   }
 
   const handleCartClick = () => {
     if (isAuthenticated) {
-      navigate('/order/cart')
+      navigate(paths.cart)
       return
     }
-    requireAuth('/order/cart')
+    requireAuth(paths.cart)
   }
 
   return (
@@ -49,14 +84,27 @@ export default function SavoriaMenuPage() {
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
-              onClick={() => navigate('/order/welcome')}
+              onClick={() => navigate(paths.orders)}
               className="sv-btn-ghost py-2 px-3"
             >
               <FiArrowLeft size={18} />
             </button>
             <div className="text-center flex-1 px-2">
+              {restaurant.logo?.url && (
+                <OptimizedImage
+                  src={restaurant.logo.url}
+                  alt=""
+                  width={40}
+                  className="w-10 h-10 rounded-full object-cover mx-auto mb-1 border border-[var(--sv-border)]"
+                />
+              )}
               <h1 className="sv-display font-bold text-lg text-[var(--sv-text)]">{restaurant.name}</h1>
-              <p className="text-xs text-[var(--sv-text-muted)]">Table {restaurant.tableNumber}</p>
+              {restaurant.tableNumber && (
+                <p className="text-xs text-[var(--sv-text-muted)]">Table {restaurant.tableNumber}</p>
+              )}
+              {restaurant.address?.city && (
+                <p className="text-[10px] text-[var(--sv-text-muted)] mt-0.5">{restaurant.address.city}</p>
+              )}
             </div>
             <button
               type="button"
@@ -77,10 +125,19 @@ export default function SavoriaMenuPage() {
 
       <main className="px-4 md:px-6 py-5 max-w-4xl mx-auto">
         <div className="mb-5">
-          <SavoriaCategoryFilter active={category} onChange={setCategory} />
+          <SavoriaCategoryFilter active={category} onChange={setCategory} categories={categories} />
         </div>
 
-        {filtered.length === 0 ? (
+        {menuLoading ? (
+          <MenuSkeleton />
+        ) : menuError ? (
+          <div className="text-center py-16">
+            <p className="text-[var(--sv-text-muted)] mb-4">{menuError}</p>
+            <button type="button" onClick={loadMenu} className="sv-btn-primary">
+              Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-[var(--sv-text-muted)]">No dishes found. Try another search or category.</p>
           </div>

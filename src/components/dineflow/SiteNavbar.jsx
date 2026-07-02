@@ -6,9 +6,10 @@ import { gsap } from '../../utils/gsapSetup'
 import ThemeToggle from './ThemeToggle'
 import BrandLogo from './BrandLogo'
 import BrandMark from './BrandMark'
+import NavbarProfileMenu from './NavbarProfileMenu'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
-import NavbarProfileMenu from './NavbarProfileMenu'
+import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 
 const NAV = [
   { label: 'Home', href: '/' },
@@ -143,6 +144,11 @@ export default function SiteNavbar({ variant = 'light' }) {
     e?.preventDefault?.()
     closeMenu()
     if (isLoggedIn) {
+      const phone = user?.phone || savoriaAuth?.phone
+      if (shouldOpenSuperAdminPanel(user, phone)) {
+        navigate('/platform')
+        return
+      }
       navigate(ORDER_ENTRY)
       return
     }

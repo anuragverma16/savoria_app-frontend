@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { buildTableBookingParams } from './tableBookingLink'
+import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Shared paths for /order (guest) vs /restaurant/:rid/user (member) panels */
 export function useOrderPanelPaths() {
@@ -20,7 +21,11 @@ export function useOrderPanelPaths() {
         home: '/order/dashboard',
         tables: '/order/tables',
         menu: '/order/menu',
-        history: '/order/dashboard',
+        cart: '/order/cart',
+        checkout: '/order/checkout',
+        orders: '/order/orders',
+        orderSuccess: (orderId) => `/order/success/${orderId}`,
+        history: '/order/history',
       }
     }
     const base = rid ? `/restaurant/${rid}/user` : '/order/dashboard'

@@ -43,35 +43,43 @@ function otpError(err, fallback) {
   return error
 }
 
-export async function sendWhatsappOtp(phone, purpose = 'login') {
+export async function sendWhatsappOtp(phone, purpose = 'login', loginRole) {
   const normalized = normalizePhone(phone)
   if (!normalized || normalized.length < 12) {
     throw new Error('Enter a valid 10-digit mobile number')
   }
 
   try {
-    const { data } = await authAPI.sendWhatsappOtp({ phone: normalized, purpose })
+    const payload = { phone: normalized, purpose }
+    if (loginRole === 'admin' || loginRole === 'staff') {
+      payload.loginRole = loginRole
+    }
+    const { data } = await authAPI.sendWhatsappOtp(payload)
     return data
   } catch (err) {
     throw otpError(err, 'Could not send WhatsApp OTP. Check the number and try again.')
   }
 }
 
-export async function verifyWhatsappOtp(phone, code, profile = {}, purpose = 'login') {
+export async function verifyWhatsappOtp(phone, code, profile = {}, purpose = 'login', loginRole) {
   const normalized = normalizePhone(phone)
   if (!normalized) {
     throw new Error('Enter a valid mobile number')
   }
 
   try {
-    const { data } = await authAPI.verifyWhatsappOtp({
+    const payload = {
       phone: normalized,
       code: String(code).trim(),
       purpose,
       name: profile.name,
       email: profile.email,
       restaurantName: profile.restaurantName,
-    })
+    }
+    if (loginRole === 'admin' || loginRole === 'staff') {
+      payload.loginRole = loginRole
+    }
+    const { data } = await authAPI.verifyWhatsappOtp(payload)
     return data
   } catch (err) {
     throw otpError(err, 'Invalid OTP. Please check the code and try again.')

@@ -39,6 +39,10 @@ const userNav = [
   { to: 'user/tables', label: 'Book table', icon: FiLink },
   { to: 'user/menu', label: 'Menu', icon: FiShoppingBag },
 ]
+
+const superAdminCustomerNav = [
+  { to: 'user', label: 'Customers', icon: FiUsers },
+]
 export default function RestaurantLayout() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -51,7 +55,11 @@ export default function RestaurantLayout() {
 
   const panel = getEffectivePanel(user, { impersonating, viewAsPanel, pathname: location.pathname })
   const isSuperAdmin = user?.platformRole === 'superadmin' || user?.role === 'superadmin'
-  const NAV = panel === 'user' ? userNav : panel === 'staff' ? staffNav : adminNav
+  const NAV = panel === 'user'
+    ? (isSuperAdmin && impersonating ? superAdminCustomerNav : userNav)
+    : panel === 'staff'
+      ? staffNav
+      : adminNav
 
   useEffect(() => {
     if (!isSuperAdmin || !impersonating) return
@@ -66,7 +74,7 @@ export default function RestaurantLayout() {
     dispatch(clearTenant())
     if (panel === 'user') navigate('/login?role=user')
     else if (panel === 'staff') navigate('/login?role=staff')
-    else if (isSuperAdmin) navigate('/login?role=superadmin')
+    else if (isSuperAdmin) navigate('/')
     else navigate('/login?role=admin')
   }
 

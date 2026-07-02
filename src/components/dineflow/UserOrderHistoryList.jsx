@@ -20,6 +20,7 @@ export default function UserOrderHistoryList({
   orders = [],
   defaultRestaurant = null,
   emptyMessage = 'No orders yet.',
+  highlightOrderId = null,
 }) {
   if (!orders.length) {
     return <p className="text-white/40 py-10 text-center text-sm">{emptyMessage}</p>
@@ -61,7 +62,11 @@ export default function UserOrderHistoryList({
         return (
           <article
             key={order._id}
-            className="p-5 rounded-2xl border border-white/10 bg-white/[0.03] hover:border-emerald-500/20 transition-colors"
+            className={`p-5 rounded-2xl border transition-colors ${
+              highlightOrderId && (order.orderId === highlightOrderId || String(order._id) === String(highlightOrderId))
+                ? 'border-emerald-400/60 bg-emerald-500/10 ring-2 ring-emerald-400/30'
+                : 'border-white/10 bg-white/[0.03] hover:border-emerald-500/20'
+            }`}
           >
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
               <div className="flex-1 min-w-0 space-y-3">

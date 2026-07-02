@@ -3,7 +3,7 @@ import { initCart } from '../store/slices/cartSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
 import { buildOrderMenuAutoLinkPath } from './orderPanelPaths'
-import { buildMenuAutoLinkPath } from './tableBookingLink'
+import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
 export async function linkGuestTableScan(dispatch, { restaurant, table }) {
@@ -124,12 +124,13 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 }
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel) {
-  const params = {
-    tableToken: table.qrToken,
-    tableId: table._id,
-    tableNumber: table.tableNumber,
+  if (isOrderPanel) {
+    const params = {
+      tableToken: table.qrToken,
+      tableId: table._id,
+      tableNumber: table.tableNumber,
+    }
+    return buildOrderMenuAutoLinkPath(restaurantId, params)
   }
-  return isOrderPanel
-    ? buildOrderMenuAutoLinkPath(restaurantId, params)
-    : buildMenuAutoLinkPath(restaurantId, params)
+  return buildMenuQrPath(restaurantId, table._id)
 }

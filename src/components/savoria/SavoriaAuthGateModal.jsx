@@ -7,6 +7,8 @@ import toast from 'react-hot-toast'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { setCredentials } from '../../store/slices/authSlice'
 import { hydrateTenantAfterAuth } from '../../utils/panelRole'
+import { resetPageLocks } from '../../utils/resetPageLocks'
+import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
@@ -24,12 +26,12 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
   const dispatch = useDispatch()
   const {
     completeAuth,
-    runAuthSuccess,
     isAuthenticated,
     authGateMode,
     setAuthGateMode,
     closeAuthModal,
   } = useSavoriaGuest()
+  const superAdminLoginRef = useRef(false)
 
   const activeMode = mode || authGateMode || 'login'
   const isSignup = activeMode === 'signup'
@@ -67,11 +69,11 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
   }, [open, isSignup])
 
   useEffect(() => {
-    if (open && isAuthenticated) {
-      runAuthSuccess()
+    if (!open) return
+    if (isAuthenticated && superAdminLoginRef.current) {
       onClose()
     }
-  }, [open, isAuthenticated, runAuthSuccess, onClose])
+  }, [open, isAuthenticated, onClose])
 
   const handleClose = () => {
     closeAuthModal()
@@ -91,32 +93,58 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
   const applyAuthResult = (result) => {
     const authPayload = result?.accessToken ? result : null
     const user = authPayload?.user || result
+    const phoneHint = result?.phone || user?.phone
+    const openSuperAdmin = Boolean(result?.isSuperAdmin)
+      || shouldOpenSuperAdminPanel(user, phoneHint)
+
+    superAdminLoginRef.current = openSuperAdmin
 
     if (authPayload?.accessToken) {
+      const apiUser = openSuperAdmin
+        ? { ...authPayload.user, platformRole: 'superadmin', role: 'superadmin' }
+        : authPayload.user
+
       dispatch(setCredentials({
-        user: authPayload.user,
+        user: apiUser,
         accessToken: authPayload.accessToken,
         refreshToken: authPayload.refreshToken,
         memberships: authPayload.memberships,
       }))
-      hydrateTenantAfterAuth(dispatch, {
-        user: authPayload.user,
-        memberships: authPayload.memberships,
-        loginRole: 'user',
-      }, 'user')
+
+      if (openSuperAdmin) {
+        hydrateTenantAfterAuth(dispatch, {
+          user: apiUser,
+          memberships: authPayload.memberships,
+          loginRole: 'superadmin',
+        }, 'superadmin')
+      } else {
+        hydrateTenantAfterAuth(dispatch, {
+          user: apiUser,
+          memberships: authPayload.memberships,
+          loginRole: 'user',
+        }, 'user')
+      }
     }
 
     const firstName = user?.name?.split(' ')[0] || 'Guest'
     completeAuth({
       name: user?.name,
-      phone: user?.phone,
+      phone: user?.phone || phoneHint,
       email: user?.email,
       restaurantName: user?.restaurant?.name || authPayload?.memberships?.[0]?.restaurant?.name,
       verified: true,
-    })
+    }, { skipSuccessCallback: openSuperAdmin })
+
     toast.success(`Welcome, ${firstName}!`)
     closeAuthModal()
     onClose()
+
+    if (openSuperAdmin) {
+      resetPageLocks()
+      navigate('/platform', { replace: true })
+      return
+    }
+
     if (redirectPath) navigate(redirectPath || '/order/dashboard')
   }
 

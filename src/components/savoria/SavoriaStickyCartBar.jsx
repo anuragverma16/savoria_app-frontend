@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 
 export default function SavoriaStickyCartBar() {
-  const { totals, requireAuth, isAuthenticated } = useSavoriaGuest()
+  const { totals, requireAuth, isAuthenticated, paths } = useSavoriaGuest()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -12,10 +12,10 @@ export default function SavoriaStickyCartBar() {
 
   const handleViewCart = () => {
     if (isAuthenticated) {
-      navigate('/order/cart')
+      navigate(paths.cart)
       return
     }
-    requireAuth('/order/cart')
+    requireAuth(paths.cart)
   }
 
   return (
@@ -29,7 +29,7 @@ export default function SavoriaStickyCartBar() {
         <div className="flex items-center justify-between gap-4 max-w-2xl mx-auto">
           <div>
             <p className="text-xs text-[var(--sv-text-muted)]">{totals.itemCount} item{totals.itemCount !== 1 ? 's' : ''}</p>
-            <p className="font-bold text-lg text-[var(--sv-text)]">₹{totals.grandTotal}</p>
+            <p className="font-bold text-lg text-[var(--sv-text)]">₹{totals.total}</p>
           </div>
           <button type="button" onClick={handleViewCart} className="sv-btn-primary px-8">
             View Cart

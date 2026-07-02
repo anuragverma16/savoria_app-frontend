@@ -73,7 +73,9 @@ export const platformAPI = {
   overview: () => api.get('/platform/overview'),
   orders: (params) => api.get('/platform/orders', { params }),
   restaurants: (params) => api.get('/platform/restaurants', { params }),
-  createRestaurant: (data) => api.post('/platform/restaurants', data),
+  createRestaurant: (data, idempotencyKey) => api.post('/platform/restaurants', data, {
+    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+  }),
   createRestaurantAdmin: (id, data) => api.post(`/platform/restaurants/${id}/admins`, data),
   restaurantStaff: (id) => api.get(`/platform/restaurants/${id}/staff`),
   createRestaurantStaff: (id, data) => api.post(`/platform/restaurants/${id}/staff`, data),
@@ -86,6 +88,9 @@ export const platformAPI = {
   contacts: (params) => api.get('/platform/contacts', { params }),
   updateContact: (id, data) => api.patch(`/platform/contacts/${id}`, data),
   deleteContact: (id) => api.delete(`/platform/contacts/${id}`),
+  users: (params) => api.get('/platform/users', { params }),
+  loginHistory: (params) => api.get('/platform/login-history', { params }),
+  customerDashboard: (restaurantId, params) => api.get(`/platform/restaurants/${restaurantId}/customer-dashboard`, { params }),
 }
 
 export const publicAPI = {
@@ -102,6 +107,7 @@ export const publicAPI = {
   placeOrder: (slug, data) => api.post(`/public/${slug}/orders`, data),
   trackOrder: (orderId) => api.get(`/public/orders/${orderId}/track`),
   submitContact: (data) => api.post('/public/contact', data),
+  getPlatformStats: () => api.get('/public/stats'),
 }
 
 export const restaurantAPI = (restaurantId) => ({

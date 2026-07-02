@@ -164,5 +164,6 @@ export function getRedirectAfterLogin(user, membership) {
 export const LOGIN_ROLES = ['admin', 'staff', 'user', 'superadmin']
 
 export function normalizeLoginRole(role) {
+  if (role === 'superadmin') return 'admin'
   return LOGIN_ROLES.includes(role) ? role : 'user'
 }

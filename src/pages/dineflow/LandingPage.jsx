@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FiArrowRight, FiMaximize2, FiBarChart2, FiUsers, FiZap,
@@ -75,15 +75,8 @@ const FEATURES = [
   { icon: FiUsers, title: 'Multi-Tenant', desc: 'One platform for cafés, chains & cloud kitchens', image: FOOD.rooftop },
 ]
 
-const STATS = [
-  { value: '500+', label: 'Restaurants' },
-  { value: '24/7', label: 'Uptime' },
-  { value: '99%', label: 'Satisfaction' },
-  { value: '1M+', label: 'Orders' },
-]
-
 const PLANS = [
-  { name: 'Starter', price: 'Free', period: 'forever', features: ['Digital QR menu', '50 orders/mo', '1 staff'], accent: 'from-orange-500 to-amber-600' },
+  { name: 'Starter', price: 'Free', period: 'for first 3 months', features: ['Digital QR menu', '50 orders/mo', '1 staff'], accent: 'from-orange-500 to-amber-600' },
   { name: 'Pro', price: '₹999', period: '/mo', popular: true, features: ['Unlimited orders', 'Kitchen display', 'Analytics', '5 staff'], accent: 'from-green-500 to-emerald-600' },
   { name: 'Enterprise', price: 'Custom', period: '', features: ['Multi-location', 'API', 'Priority support', 'Branding'], accent: 'from-lime-600 to-green-700' },
 ]
@@ -122,7 +115,27 @@ export default function LandingPage() {
   const guestAuth = useSavoriaGuestOptional()
   const [contactForm, setContactForm] = useState(EMPTY_CONTACT_FORM)
   const [contactSending, setContactSending] = useState(false)
+  const [platformStats, setPlatformStats] = useState({ restaurants: 0, orders: 0 })
   useLandingGsap(pageRef)
+
+  useEffect(() => {
+    publicAPI.getPlatformStats()
+      .then((res) => {
+        const { restaurants, orders } = res.data?.stats || {}
+        setPlatformStats({
+          restaurants: typeof restaurants === 'number' ? restaurants : 0,
+          orders: typeof orders === 'number' ? orders : 0,
+        })
+      })
+      .catch(() => {})
+  }, [])
+
+  const stats = [
+    { value: String(platformStats.restaurants), label: 'Restaurants' },
+    { value: '24/7', label: 'Uptime' },
+    { value: '99%', label: 'Satisfaction' },
+    { value: String(platformStats.orders), label: 'Orders' },
+  ]
 
   const setContactField = (key) => (e) => {
     setContactForm((prev) => ({ ...prev, [key]: e.target.value }))
@@ -317,7 +330,7 @@ export default function LandingPage() {
         {/* STATS */}
         <section className="py-16 border-y border-white/10 bg-[#030712]">
           <div className="max-w-7xl mx-auto px-5 grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {STATS.map((s) => (
+            {stats.map((s) => (
               <div key={s.label} className="lp-stat-card lp-stagger text-center">
                 <p className="lp-stat-num text-4xl sm:text-5xl font-bold text-white" data-value={s.value}>
                   {s.value}

@@ -17,6 +17,7 @@ import TablesPage from './pages/dineflow/restaurant/TablesPage'
 import OrdersPage from './pages/dineflow/restaurant/OrdersPage'
 import MenuManagementPage from './pages/dineflow/restaurant/MenuManagementPage'
 import UserDashboard from './pages/dineflow/restaurant/UserDashboard'
+import CustomerDashboardRoute from './pages/dineflow/restaurant/CustomerDashboardRoute'
 import UserTableBookPage from './pages/dineflow/restaurant/UserTableBookPage'
 import UserMenuPage from './pages/dineflow/restaurant/UserMenuPage'
 import CouponsPage from './pages/dineflow/restaurant/CouponsPage'
@@ -32,6 +33,15 @@ import TableNotFoundPage from './pages/dineflow/public/TableNotFoundPage'
 import ScannedRestaurantGuard from './components/ScannedRestaurantGuard'
 import SavoriaOrderLayout from './layouts/SavoriaOrderLayout'
 import SavoriaQrEntry from './pages/savoria/SavoriaQrEntry'
+import SavoriaUserDashboard from './pages/savoria/SavoriaUserDashboard'
+import SavoriaOrderHistoryPage from './pages/savoria/SavoriaOrderHistoryPage'
+import CustomerMenuQrEntry from './pages/savoria/CustomerMenuQrEntry'
+import SavoriaMenuPage from './pages/savoria/SavoriaMenuPage'
+import SavoriaCartPage from './pages/savoria/SavoriaCartPage'
+import SavoriaCheckoutPage from './pages/savoria/SavoriaCheckoutPage'
+import SavoriaOrderSuccessPage from './pages/savoria/SavoriaOrderSuccessPage'
+import CustomerOrderLayout from './layouts/CustomerOrderLayout'
+import CustomerTableGuard from './components/CustomerTableGuard'
 import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
 import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
@@ -40,20 +50,29 @@ import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
 import AppAuthModal from './components/AppAuthModal'
 
 function resolveLoginPath(pathname) {
-  if (pathname.startsWith('/platform')) return '/login?role=superadmin'
+  if (pathname.startsWith('/platform')) return '/'
   if (/^\/restaurant\/[^/]+\/user(\/|$)/.test(pathname)) return '/login?role=user'
   if (/^\/restaurant\/[^/]+\/(staff|orders|kitchen|tables|menu-stock)(\/|$)/.test(pathname)) return '/login?role=staff'
   if (/^\/restaurant\//.test(pathname)) return '/login?role=admin'
   return '/login'
 }
 
-function ProtectedRoute({ children, roles, loginPath }) {
+function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) {
   const { user, accessToken } = useSelector((s) => s.auth)
   const location = useLocation()
   const target = loginPath ?? resolveLoginPath(location.pathname)
 
   if (!accessToken || !user) {
-    return <Navigate to={target} state={{ from: location }} replace />
+    return (
+      <Navigate
+        to={target}
+        state={{
+          from: location,
+          ...(openOtpOnLogin ? { openAuth: true } : {}),
+        }}
+        replace
+      />
+    )
   }
   if (roles && !roles.includes(user.role) && user.platformRole !== 'superadmin') {
     return <Navigate to="/unauthorized" replace />
@@ -126,6 +145,10 @@ function TablesRoute() {
   return <TablesPage />
 }
 
+function PortalEntry() {
+  return <Navigate to="/" state={{ openAuth: true, from: { pathname: '/platform' } }} replace />
+}
+
 export default function DineFlowApp() {
   return (
   <SavoriaGuestProvider>
@@ -134,7 +157,7 @@ export default function DineFlowApp() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<DineFlowLogin />} />
         <Route path="/user/sign-in" element={<UserSignInPage />} />
-        <Route path="/portal" element={<Navigate to="/login?role=superadmin" replace />} />
+        <Route path="/portal" element={<PortalEntry />} />
         <Route path="/staff" element={<Navigate to="/login?role=staff" replace />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/restaurant-suspended" element={<SuspendedRestaurantPage />} />
@@ -147,13 +170,27 @@ export default function DineFlowApp() {
 
         <Route path="/order" element={<SavoriaOrderLayout />}>
           <Route index element={<SavoriaQrEntry />} />
-          <Route path="dashboard" element={<UserDashboard />} />
+          <Route path="dashboard" element={<SavoriaUserDashboard />} />
+          <Route path="orders" element={<SavoriaOrderHistoryPage />} />
+          <Route path="history" element={<SavoriaOrderHistoryPage />} />
           <Route path="tables" element={<UserTableBookPage />} />
           <Route path="menu" element={<ScannedRestaurantGuard requireTable><UserMenuPage /></ScannedRestaurantGuard>} />
+          <Route path="menu-browse" element={<ScannedRestaurantGuard requireTable><SavoriaMenuPage /></ScannedRestaurantGuard>} />
+          <Route path="cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
+          <Route path="checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
+          <Route path="success/:orderId" element={<SavoriaOrderSuccessPage />} />
+        </Route>
+
+        <Route element={<CustomerOrderLayout />}>
+          <Route path="/menu/:restaurantId/:tableId" element={<CustomerMenuQrEntry />} />
+          <Route path="/cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
+          <Route path="/checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
+          <Route path="/order-success/:orderId" element={<SavoriaOrderSuccessPage />} />
+          <Route path="/orders" element={<Navigate to="/order/history" replace />} />
         </Route>
 
         <Route path="/platform" element={
-          <ProtectedRoute roles={['superadmin']} loginPath="/login?role=superadmin">
+          <ProtectedRoute roles={['superadmin']} loginPath="/" openOtpOnLogin>
             <PlatformLayout />
           </ProtectedRoute>
         }>
@@ -176,7 +213,7 @@ export default function DineFlowApp() {
           <Route path="tables" element={<RoleGate allowed={['admin', 'staff']}><TablesRoute /></RoleGate>} />
           <Route path="menu-stock" element={<RoleGate allowed={['staff']}><StaffMenuStockPage /></RoleGate>} />
           <Route path="menu" element={<RoleGate allowed={['admin']}><MenuManagementPage /></RoleGate>} />
-          <Route path="user" element={<RoleGate allowed={['user']}><UserDashboard /></RoleGate>} />
+          <Route path="user" element={<RoleGate allowed={['user']}><CustomerDashboardRoute /></RoleGate>} />
           <Route path="user/tables" element={<RoleGate allowed={['user']}><UserTableBookPage /></RoleGate>} />
           <Route path="user/scan" element={<Navigate to="tables" replace />} />
           <Route path="user/menu" element={<RoleGate allowed={['user']}><UserMenuPage /></RoleGate>} />

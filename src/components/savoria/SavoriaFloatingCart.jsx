@@ -3,7 +3,7 @@ import { FiShoppingBag } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 
 export default function SavoriaFloatingCart() {
-  const { totals } = useSavoriaGuest()
+  const { totals, paths } = useSavoriaGuest()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -13,7 +13,7 @@ export default function SavoriaFloatingCart() {
   return (
     <button
       type="button"
-      onClick={() => navigate('/order/cart')}
+      onClick={() => navigate(paths.cart)}
       className="sv-floating-cart"
       aria-label={`View cart, ${totals.itemCount} items`}
     >

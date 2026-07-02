@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiGrid, FiUsers, FiShoppingBag, FiDollarSign, FiMapPin,
-  FiPause, FiPlay, FiBarChart2, FiCoffee, FiTrendingUp, FiPlus, FiX, FiUserPlus, FiMail, FiTrash2,
+  FiPause, FiPlay, FiBarChart2, FiCoffee, FiTrendingUp, FiPlus, FiUserPlus, FiMail, FiTrash2,
 } from 'react-icons/fi'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { platformAPI } from '../../../api/dineflow'
@@ -13,11 +13,15 @@ import OrderHistoryTable from '../../../components/dineflow/OrderHistoryTable'
 import { setActiveRestaurant, setImpersonating, setViewAsPanel, clearTenant } from '../../../store/slices/tenantSlice'
 import toast from 'react-hot-toast'
 import { showErrorToast, showSuccessToast } from '../../../utils/appToast'
+import PlatformProvisionModal from '../../../components/platform/PlatformProvisionModal'
+import PlatformUsersPanel from '../../../components/platform/PlatformUsersPanel'
+import { normalizeProvisionPhone } from '../../../utils/platformProvisionOtp'
 
 const FOOD_COLORS = ['#f97316', '#ef4444', '#f59e0b', '#84cc16', '#fb923c', '#dc2626', '#eab308']
 
 const TABS = [
   { id: 'restaurants', label: 'Restaurants', icon: FiMapPin, color: 'orange' },
+  { id: 'users', label: 'Users', icon: FiUsers, color: 'violet' },
   { id: 'orders', label: 'Order History', icon: FiShoppingBag, color: 'gold' },
   { id: 'messages', label: 'Messages', icon: FiMail, color: 'green' },
   { id: 'analytics', label: 'Analytics', icon: FiBarChart2, color: 'gold' },
@@ -26,7 +30,7 @@ const TABS = [
 const PANELS = [
   { id: 'admin', label: 'Admin', path: 'admin', color: 'orange' },
   { id: 'staff', label: 'Staff', path: 'staff', color: 'gold' },
-  { id: 'user', label: 'User', path: 'user', color: 'tomato' },
+  { id: 'user', label: 'Customer', path: 'user', color: 'tomato' },
 ]
 
 function Stat({ icon: Icon, label, value, accent }) {
@@ -62,7 +66,6 @@ const EMPTY_ADMIN_FORM = {
   city: '',
   adminName: '',
   adminEmail: '',
-  adminPassword: '',
   adminPhone: '',
 }
 
@@ -79,6 +82,8 @@ export default function SuperAdminDashboard() {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState('')
   const [adminForm, setAdminForm] = useState(EMPTY_ADMIN_FORM)
   const [saving, setSaving] = useState(false)
+  const submitLockRef = useRef(false)
+  const createIdempotencyKeyRef = useRef('')
   const [contacts, setContacts] = useState([])
   const [contactsLoading, setContactsLoading] = useState(false)
   const [newContactCount, setNewContactCount] = useState(0)
@@ -160,7 +165,14 @@ export default function SuperAdminDashboard() {
     } catch { toast.error('Failed') }
   }
 
+  const newCreateIdempotencyKey = () => {
+    createIdempotencyKeyRef.current = typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `create-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  }
+
   const openCreateRestaurant = () => {
+    newCreateIdempotencyKey()
     setCreateMode('restaurant')
     setSelectedRestaurantId('')
     setAdminForm(EMPTY_ADMIN_FORM)
@@ -168,6 +180,7 @@ export default function SuperAdminDashboard() {
   }
 
   const openAddAdmin = (restaurantId) => {
+    newCreateIdempotencyKey()
     setCreateMode('admin')
     setSelectedRestaurantId(restaurantId)
     setAdminForm(EMPTY_ADMIN_FORM)
@@ -175,6 +188,7 @@ export default function SuperAdminDashboard() {
   }
 
   const openAddStaff = (restaurantId) => {
+    newCreateIdempotencyKey()
     setCreateMode('staff')
     setSelectedRestaurantId(restaurantId)
     setAdminForm(EMPTY_ADMIN_FORM)
@@ -217,34 +231,40 @@ export default function SuperAdminDashboard() {
 
   const handleCreateAdmin = async (e) => {
     e.preventDefault()
+    if (submitLockRef.current || saving) return
+
+    const phone = normalizeProvisionPhone(adminForm.adminPhone)
+    if (phone.length < 10) {
+      toast.error('Enter a valid 10-digit mobile number')
+      return
+    }
+
+    submitLockRef.current = true
     setSaving(true)
     try {
+      const payloadBase = {
+        name: adminForm.adminName.trim(),
+        email: adminForm.adminEmail.trim().toLowerCase(),
+        phone,
+      }
+
       if (createMode === 'restaurant') {
         const { data } = await platformAPI.createRestaurant({
           name: adminForm.restaurantName.trim(),
           city: adminForm.city.trim(),
-          adminName: adminForm.adminName.trim(),
-          adminEmail: adminForm.adminEmail.trim().toLowerCase(),
-          adminPassword: adminForm.adminPassword,
-          adminPhone: adminForm.adminPhone.trim(),
-        })
+          adminName: payloadBase.name,
+          adminEmail: payloadBase.email,
+          adminPhone: payloadBase.phone,
+        }, createIdempotencyKeyRef.current)
         toast.success(`Restaurant created. ID: ${data.restaurant._id}`)
       } else if (createMode === 'staff') {
         const { data } = await platformAPI.createRestaurantStaff(selectedRestaurantId, {
-          name: adminForm.adminName.trim(),
-          email: adminForm.adminEmail.trim().toLowerCase(),
-          password: adminForm.adminPassword,
-          phone: adminForm.adminPhone.trim(),
+          ...payloadBase,
           role: 'staff',
         })
         toast.success(`Staff added: ${data.user.email}`)
       } else {
-        const { data } = await platformAPI.createRestaurantAdmin(selectedRestaurantId, {
-          name: adminForm.adminName.trim(),
-          email: adminForm.adminEmail.trim().toLowerCase(),
-          password: adminForm.adminPassword,
-          phone: adminForm.adminPhone.trim(),
-        })
+        const { data } = await platformAPI.createRestaurantAdmin(selectedRestaurantId, payloadBase)
         toast.success(`Admin added: ${data.admin.email}`)
       }
       setShowCreateModal(false)
@@ -253,9 +273,12 @@ export default function SuperAdminDashboard() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save')
     } finally {
+      submitLockRef.current = false
       setSaving(false)
     }
   }
+
+  const selectedRestaurant = restaurants.find((r) => r._id === selectedRestaurantId)
 
   const planData = overview
     ? Object.entries(overview.planBreakdown || {}).map(([name, value]) => ({ name, value }))
@@ -429,6 +452,18 @@ export default function SuperAdminDashboard() {
           </motion.div>
         )}
 
+        {tab === 'users' && (
+          <motion.div
+            key="users"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+          >
+            <PlatformUsersPanel restaurants={restaurants} />
+          </motion.div>
+        )}
+
         {tab === 'messages' && (
           <motion.div
             key="messages"
@@ -577,7 +612,7 @@ export default function SuperAdminDashboard() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
               <div>
                 <h2 className="text-lg font-semibold text-stone-100">Restaurants & admins</h2>
-                <p className="text-stone-500 text-sm">Create restaurant admin accounts from here — not from public sign up</p>
+                <p className="text-stone-500 text-sm">Add restaurants, admins, and staff with restaurant name, phone, and email verification</p>
               </div>
               <button
                 type="button"
@@ -697,104 +732,20 @@ export default function SuperAdminDashboard() {
         )}
       </AnimatePresence>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl platform-card p-6 border border-orange-500/20 shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-lg font-bold text-stone-100">
-                  {createMode === 'restaurant'
-                    ? 'New restaurant & admin'
-                    : createMode === 'staff'
-                      ? 'Add restaurant staff'
-                      : 'Add restaurant admin'}
-                </h3>
-                <p className="text-stone-500 text-sm mt-1">
-                  {createMode === 'restaurant'
-                    ? 'Creates the restaurant and the admin login in one step'
-                    : createMode === 'staff'
-                      ? 'Staff can sign in from the Staff tab after you create them here'
-                      : 'Assign an admin to an existing restaurant'}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateModal(false)}
-                className="p-2 rounded-lg text-stone-400 hover:text-white hover:bg-white/10"
-              >
-                <FiX size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateAdmin} className="space-y-3">
-              {createMode === 'restaurant' && (
-                <>
-                  <input
-                    value={adminForm.restaurantName}
-                    onChange={setAdminField('restaurantName')}
-                    placeholder="Restaurant name *"
-                    required
-                    className="df-input w-full"
-                  />
-                  <input
-                    value={adminForm.city}
-                    onChange={setAdminField('city')}
-                    placeholder="City"
-                    className="df-input w-full"
-                  />
-                </>
-              )}
-              <input
-                value={adminForm.adminName}
-                onChange={setAdminField('adminName')}
-                placeholder={createMode === 'staff' ? 'Staff full name *' : 'Admin full name *'}
-                required
-                className="df-input w-full"
-              />
-              <input
-                type="email"
-                value={adminForm.adminEmail}
-                onChange={setAdminField('adminEmail')}
-                placeholder={createMode === 'staff' ? 'Staff email *' : 'Admin email *'}
-                required
-                className="df-input w-full"
-              />
-              <input
-                type="password"
-                value={adminForm.adminPassword}
-                onChange={setAdminField('adminPassword')}
-                placeholder={createMode === 'staff' ? 'Staff password (min 6 chars) *' : 'Admin password (min 6 chars) *'}
-                required
-                minLength={6}
-                className="df-input w-full"
-              />
-              <input
-                value={adminForm.adminPhone}
-                onChange={setAdminField('adminPhone')}
-                placeholder="Phone (optional)"
-                className="df-input w-full"
-              />
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-3 rounded-xl border border-white/10 text-stone-300 hover:bg-white/5"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex-1 df-btn-primary py-3 disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : createMode === 'restaurant' ? 'Create' : createMode === 'staff' ? 'Add staff' : 'Add admin'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <PlatformProvisionModal
+        open={showCreateModal}
+        createMode={createMode}
+        selectedRestaurant={selectedRestaurant}
+        form={adminForm}
+        onFieldChange={setAdminField}
+        onPhoneChange={(e) => setAdminForm({
+          ...adminForm,
+          adminPhone: e.target.value.replace(/\D/g, '').slice(0, 10),
+        })}
+        onSubmit={handleCreateAdmin}
+        onClose={() => setShowCreateModal(false)}
+        saving={saving}
+      />
     </div>
   )
 }

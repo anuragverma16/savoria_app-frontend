@@ -3,23 +3,21 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import { useDispatch, useSelector } from 'react-redux'
 import gsap from 'gsap'
 import {
-  FiEye, FiEyeOff, FiArrowRight, FiShield, FiGrid, FiUsers, FiUser,
+  FiGrid, FiUsers, FiUser,
   FiMaximize2, FiZap, FiBarChart2, FiCheck,
 } from 'react-icons/fi'
-import { loginUser, registerUser } from '../../store/slices/authSlice'
+import WhatsappOtpAuthForm from '../../components/dineflow/WhatsappOtpAuthForm'
 import { getRedirectAfterLogin, hydrateTenantAfterAuth, normalizeLoginRole, shouldBlockSuspendedRestaurant, RESTAURANT_SUSPENDED_MESSAGE } from '../../utils/panelRole'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import ThemeToggle from '../../components/dineflow/ThemeToggle'
 import BrandLogo from '../../components/dineflow/BrandLogo'
 import BrandMark from '../../components/dineflow/BrandMark'
-import UserSignInPage from './UserSignInPage'
 import toast from 'react-hot-toast'
 
 const LOGIN_ROLES = [
   { id: 'admin', label: 'Admin', icon: FiGrid, color: '#3b82f6' },
   { id: 'staff', label: 'Staff', icon: FiUsers, color: '#22c55e' },
   { id: 'user', label: 'User', icon: FiUser, color: '#f97316' },
-  { id: 'superadmin', label: 'Super Admin', icon: FiShield, color: '#a855f7' },
 ]
 
 const HIGHLIGHTS = [
@@ -48,11 +46,7 @@ function welcomeMessage(user) {
 export default function DineFlowLogin() {
   const [searchParams] = useSearchParams()
   const [mode, setMode] = useState('login')
-  const [showPass, setShowPass] = useState(false)
   const [role, setRole] = useState(() => normalizeLoginRole(searchParams.get('role')))
-  const [form, setForm] = useState({
-    name: '', email: '', password: '', phone: '', restaurantName: '',
-  })
 
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -71,18 +65,21 @@ export default function DineFlowLogin() {
   const orbRefs = useRef([])
   const skipFieldAnim = useRef(true)
 
-  const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
   const resolvedRole = normalizeLoginRole(role)
   const showSignup = resolvedRole === 'user'
   const showRolePicker = !(showSignup && mode === 'signup')
   const isCustomerSignup = showSignup && mode === 'signup'
-  const willRegister = isCustomerSignup
+  const otpLoginRole = resolvedRole === 'admin' || resolvedRole === 'staff' ? resolvedRole : undefined
 
   useEffect(() => {
+    if (searchParams.get('role') === 'superadmin') {
+      navigate('/', { replace: true, state: { openAuth: true, from: { pathname: '/platform' } } })
+      return
+    }
     const q = searchParams.get('role')
     if (q) setRole(normalizeLoginRole(q))
     if (searchParams.get('mode') === 'signup') setMode('signup')
-  }, [searchParams])
+  }, [searchParams, navigate])
 
   const handleModeChange = (m) => {
     if (m === mode) return
@@ -139,37 +136,9 @@ export default function DineFlowLogin() {
     navigate(path, { replace: true })
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    const btn = e.target.querySelector('button[type="submit"]')
-    gsap.to(btn, { scale: 0.96, duration: 0.1, yoyo: true, repeat: 1 })
-
-    try {
-      if (willRegister) {
-        const result = await dispatch(registerUser({
-          name: form.name,
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
-          phone: form.phone,
-          role: 'user',
-          restaurantName: form.restaurantName,
-        })).unwrap()
-        toast.success(welcomeMessage(result.user))
-        redirect(result.user, result.memberships, 'user')
-      } else {
-        const loginRole = resolvedRole
-        const result = await dispatch(loginUser({
-          email: form.email.trim().toLowerCase(),
-          password: form.password,
-          role: loginRole,
-        })).unwrap()
-        toast.success(welcomeMessage(result.user))
-        redirect(result.user, result.memberships, loginRole)
-      }
-    } catch (err) {
-      gsap.fromTo(formCardRef.current, { x: 0 }, { x: [-8, 8, -6, 6, 0], duration: 0.45, ease: 'power2.out' })
-      toast.error(err || 'Authentication failed')
-    }
+  const handleOtpAuthSuccess = (result, loginRole) => {
+    toast.success(welcomeMessage(result.user))
+    redirect(result.user, result.memberships, loginRole || 'user')
   }
 
   useLayoutEffect(() => {
@@ -250,10 +219,6 @@ export default function DineFlowLogin() {
     }
   }
 
-  if (resolvedRole === 'user' && mode === 'login') {
-    return <UserSignInPage />
-  }
-
   return (
     <div ref={pageRef} className="min-h-screen flex flex-col lg:flex-row overflow-hidden bg-white">
       <div
@@ -315,8 +280,11 @@ export default function DineFlowLogin() {
           <div ref={formCardRef} className="w-full max-w-md">
             <div className="df-login-form-head mb-8">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                {willRegister ? 'Create account' : 'Sign in'}
+                {isCustomerSignup ? 'Create account' : 'Sign in with WhatsApp'}
               </h2>
+              <p className="text-slate-500 text-sm mt-2">
+                A 6-digit WhatsApp code is required — you cannot sign in without verifying OTP.
+              </p>
             </div>
 
             {showSignup && (
@@ -367,58 +335,14 @@ export default function DineFlowLogin() {
             </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <div ref={fieldsRef} className="space-y-3">
-                {isCustomerSignup && (
-                  <div className="df-login-input-wrap">
-                    <input value={form.name} onChange={set('name')} placeholder="Full name" required className="df-input" />
-                  </div>
-                )}
-                <div className="df-login-input-wrap">
-                  <input type="email" value={form.email} onChange={set('email')} placeholder="Email address" required className="df-input" />
-                </div>
-                <div className="df-login-input-wrap relative">
-                  <input
-                    type={showPass ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={set('password')}
-                    placeholder="Password"
-                    required
-                    className="df-input pr-11"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPass(!showPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
-                    {showPass ? <FiEyeOff size={18} /> : <FiEye size={18} />}
-                  </button>
-                </div>
-                {isCustomerSignup && (
-                  <div className="df-login-input-wrap">
-                    <input value={form.restaurantName} onChange={set('restaurantName')} placeholder="Restaurant name" required className="df-input" />
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="df-login-submit df-btn-primary w-full py-3.5 mt-6 text-base disabled:opacity-50"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Please wait...
-                  </span>
-                ) : (
-                  <>
-                    {willRegister ? 'Create account' : 'Sign in'}
-                    <FiArrowRight size={18} />
-                  </>
-                )}
-              </button>
-            </form>
+            <div ref={fieldsRef}>
+              <WhatsappOtpAuthForm
+                mode={isCustomerSignup ? 'signup' : 'login'}
+                loginRole={otpLoginRole}
+                onSuccess={handleOtpAuthSuccess}
+                loading={loading}
+              />
+            </div>
 
             <p className="text-center text-slate-400 text-xs mt-8">
               {mode === 'login' && showSignup ? (

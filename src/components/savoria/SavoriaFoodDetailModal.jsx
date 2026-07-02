@@ -14,6 +14,10 @@ export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
   }, [open, item?.id])
 
   const handleAdd = () => {
+    if (item.isAvailable === false) {
+      toast.error(`${item.name} is currently unavailable`)
+      return
+    }
     onAdd(item, qty)
     toast.success(`${item.name} added to cart`)
     onClose()
@@ -92,8 +96,13 @@ export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
                       <FiPlus size={16} />
                     </button>
                   </div>
-                  <button type="button" onClick={handleAdd} className="sv-btn-primary flex-1">
-                    Add · ₹{item.price * qty}
+                  <button
+                    type="button"
+                    onClick={handleAdd}
+                    disabled={item.isAvailable === false}
+                    className="sv-btn-primary flex-1 disabled:opacity-50"
+                  >
+                    {item.isAvailable === false ? 'Unavailable' : `Add · ₹${item.price * qty}`}
                   </button>
                 </div>
               </div>

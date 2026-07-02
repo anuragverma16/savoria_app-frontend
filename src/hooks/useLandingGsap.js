@@ -77,19 +77,26 @@ export function useLandingGsap(pageRef) {
       })
 
       gsap.utils.toArray('.lp-stat-num').forEach((el) => {
-        const raw = el.dataset.value || el.textContent || '0'
-        const match = String(raw).match(/^(\D*)([\d.]+)(\D*)$/)
-        if (!match) return
-        const [, pre, num, post] = match
-        const target = parseFloat(num)
-        const obj = { val: 0 }
-        gsap.to(obj, {
-          scrollTrigger: { trigger: el, start: 'top 90%', once: true },
-          val: target,
-          duration: 1.6,
-          ease: 'power2.out',
-          onUpdate: () => {
-            el.textContent = `${pre}${Math.round(obj.val)}${post}`
+        ScrollTrigger.create({
+          trigger: el,
+          start: 'top 90%',
+          once: true,
+          onEnter: () => {
+            const raw = el.dataset.value || el.textContent || '0'
+            const match = String(raw).match(/^(\D*)([\d.]+)(\D*)$/)
+            if (!match) return
+            const [, pre, num, post] = match
+            const target = parseFloat(num)
+            if (!Number.isFinite(target)) return
+            const obj = { val: 0 }
+            gsap.to(obj, {
+              val: target,
+              duration: 1.6,
+              ease: 'power2.out',
+              onUpdate: () => {
+                el.textContent = `${pre}${Math.round(obj.val)}${post}`
+              },
+            })
           },
         })
       })

@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FiGrid, FiLogOut, FiSettings, FiUser } from 'react-icons/fi'
+import { useSelector } from 'react-redux'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
+import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 
-const DASHBOARD = '/order/dashboard'
+const USER_DASHBOARD = '/order/dashboard'
+const SUPERADMIN_DASHBOARD = '/platform'
 
 export default function NavbarProfileMenu({
   profileName,
@@ -17,6 +20,10 @@ export default function NavbarProfileMenu({
   const wrapRef = useRef(null)
   const navigate = useNavigate()
   const guestAuth = useSavoriaGuestOptional()
+  const { user } = useSelector((s) => s.auth)
+  const dashboardPath = shouldOpenSuperAdminPanel(user, guestAuth?.auth?.phone)
+    ? SUPERADMIN_DASHBOARD
+    : USER_DASHBOARD
 
   useEffect(() => {
     if (mobile) return undefined
@@ -45,13 +52,13 @@ export default function NavbarProfileMenu({
             {email ? <p className="lp-nav-profile-menu-email">{email}</p> : null}
           </div>
         </div>
-        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+        <Link to={dashboardPath} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
           <FiGrid size={18} /> Dashboard
         </Link>
-        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+        <Link to={dashboardPath} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
           <FiUser size={18} /> My details
         </Link>
-        <Link to={DASHBOARD} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
+        <Link to={dashboardPath} className="lp-nav-mobile-menu-item" onClick={() => setOpen(false)}>
           <FiSettings size={18} /> Settings
         </Link>
         <button type="button" className="lp-nav-mobile-menu-item lp-nav-mobile-menu-logout" onClick={handleLogout}>
@@ -89,13 +96,13 @@ export default function NavbarProfileMenu({
             </div>
           </div>
           <div className="lp-nav-profile-menu-divider" />
-          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
+          <Link to={dashboardPath} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiGrid size={16} /> Dashboard
           </Link>
-          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
+          <Link to={dashboardPath} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiUser size={16} /> My details
           </Link>
-          <Link to={DASHBOARD} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
+          <Link to={dashboardPath} className="lp-nav-profile-menu-item" onClick={() => setOpen(false)}>
             <FiSettings size={16} /> Settings
           </Link>
           <div className="lp-nav-profile-menu-divider" />

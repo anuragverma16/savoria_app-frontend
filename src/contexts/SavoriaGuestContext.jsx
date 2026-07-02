@@ -7,10 +7,13 @@ import {
   loadSavoriaSession,
   patchSavoriaSession,
 } from '../utils/savoriaGuestSession'
+import { useCustomerOrdering } from '../hooks/useCustomerOrdering'
 
 const SavoriaGuestContext = createContext(null)
 
-/** Auth + session for public /order panel (menu/cart data comes from user panel + public API) */
+export const GST_RATE = 5
+
+/** Auth + customer ordering for public QR flow */
 export function SavoriaGuestProvider({ children }) {
   const dispatch = useDispatch()
   const [searchParams] = useSearchParams()
@@ -75,6 +78,12 @@ export function SavoriaGuestProvider({ children }) {
     return null
   }, [auth, accessToken, reduxUser])
 
+  const ordering = useCustomerOrdering({
+    session,
+    refreshSession,
+    isAuthenticated,
+  })
+
   const openAuthModal = useCallback(({
     mode = 'login',
     redirectPath = '/order/dashboard',
@@ -100,7 +109,7 @@ export function SavoriaGuestProvider({ children }) {
     return openAuthModal({ mode: 'login', redirectPath, onSuccess })
   }, [openAuthModal])
 
-  const completeAuth = useCallback((user) => {
+  const completeAuth = useCallback((user, { skipSuccessCallback = false } = {}) => {
     const next = { ...user, verified: true }
     setAuth(next)
     persist({
@@ -108,6 +117,10 @@ export function SavoriaGuestProvider({ children }) {
       restaurantName: next.restaurantName || loadSavoriaSession()?.restaurantName,
     })
     setAuthGateOpen(false)
+    if (skipSuccessCallback) {
+      authSuccessRef.current = null
+      return
+    }
     const cb = authSuccessRef.current
     authSuccessRef.current = null
     cb?.()
@@ -144,10 +157,12 @@ export function SavoriaGuestProvider({ children }) {
     completeAuth,
     runAuthSuccess,
     logoutGuest,
+    GST_RATE: ordering.gstRate ?? GST_RATE,
+    ...ordering,
   }), [
     session, refreshSession, effectiveAuth, isAuthenticated, userDisplayName,
     authGateOpen, authGateMode, authGateRedirect, openAuthModal, closeAuthModal,
-    requireAuth, completeAuth, runAuthSuccess, logoutGuest,
+    requireAuth, completeAuth, runAuthSuccess, logoutGuest, ordering,
   ])
 
   return (
