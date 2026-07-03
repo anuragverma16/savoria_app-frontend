@@ -1,3 +1,5 @@
+import { optimizeImageUrl } from '../../utils/optimizeImageUrl'
+
 function labelFromVideoSrc(src) {
   const base = src.split('/').pop()?.replace(/\.[^.]+$/, '') ?? ''
   return base
@@ -7,6 +9,7 @@ function labelFromVideoSrc(src) {
 
 export default function SpotlightVideo({ src, poster, label, className = '' }) {
   const displayLabel = label ?? labelFromVideoSrc(src)
+  const resolvedPoster = poster ? optimizeImageUrl(poster, { width: 640, quality: 65 }) : undefined
 
   return (
     <div className={`lp-gallery-cell lp-spotlight-video min-h-[200px] sm:min-h-[260px] ${className}`}>
@@ -18,7 +21,7 @@ export default function SpotlightVideo({ src, poster, label, className = '' }) {
         defaultMuted
         playsInline
         preload="metadata"
-        poster={poster}
+        poster={resolvedPoster}
       >
         <source src={src} type="video/mp4" />
       </video>

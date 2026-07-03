@@ -49,6 +49,7 @@ import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
 import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
 import { resolveAuthGateState } from './utils/authEntry'
 import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
+import GuestOrderPanelGuard from './components/GuestOrderPanelGuard'
 import AppAuthModal from './components/AppAuthModal'
 
 function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) {
@@ -195,7 +196,7 @@ export default function DineFlowApp() {
         <Route path="/table-not-found" element={<TableNotFoundPage />} />
         <Route path="/r/:slug/order" element={<QRMenuRoute />} />
 
-        <Route path="/order" element={<SavoriaOrderLayout />}>
+        <Route path="/order" element={<GuestOrderPanelGuard><SavoriaOrderLayout /></GuestOrderPanelGuard>}>
           <Route index element={<SavoriaQrEntry />} />
           <Route path="dashboard" element={<SavoriaUserDashboard />} />
           <Route path="settings" element={<AccountSettingsPage />} />

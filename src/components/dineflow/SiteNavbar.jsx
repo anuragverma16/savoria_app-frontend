@@ -1,15 +1,13 @@
 import { useState, useRef, useLayoutEffect, useEffect } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useDispatch, useSelector } from 'react-redux'
+import { Link, useLocation } from 'react-router-dom'
 import { FiMenu, FiX, FiArrowRight, FiUser } from 'react-icons/fi'
 import { gsap } from '../../utils/gsapSetup'
 import ThemeToggle from './ThemeToggle'
 import BrandLogo from './BrandLogo'
 import BrandMark from './BrandMark'
 import NavbarProfileMenu from './NavbarProfileMenu'
-import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
-import { navigateToProfileDashboard } from '../../utils/panelRole'
+import { useAppAuth } from '../../hooks/useAppAuth'
 
 const NAV = [
   { label: 'Home', href: '/' },
@@ -31,18 +29,8 @@ export default function SiteNavbar({ variant = 'light' }) {
   const navRef = useRef(null)
   const logoRef = useRef(null)
   const location = useLocation()
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const { user, accessToken, memberships } = useSelector((s) => s.auth)
   const guestAuth = useSavoriaGuestOptional()
-  const savoriaAuth = loadSavoriaSession()?.auth
-  const isLoggedIn = Boolean(
-    (accessToken && user) || savoriaAuth?.verified || savoriaAuth?.verifiedAt,
-  )
-  const profileName = guestAuth?.userDisplayName
-    || user?.name?.split(/\s+/)[0]
-    || savoriaAuth?.name?.split(/\s+/)[0]
-    || 'Guest'
+  const { isLoggedIn, displayName: profileName, savoriaAuth, goToDashboard, openLogin, user } = useAppAuth()
   const profileFullName = guestAuth?.auth?.name || user?.name || savoriaAuth?.name || profileName
   const profileEmail = guestAuth?.auth?.email || user?.email || savoriaAuth?.email || ''
   const profileInitials = (profileFullName || 'G')
@@ -117,27 +105,16 @@ export default function SiteNavbar({ variant = 'light' }) {
   const handleSignIn = (e) => {
     e?.preventDefault?.()
     closeMenu()
-    if (isLoggedIn) {
-      navigateToProfileDashboard({
-        navigate,
-        dispatch,
-        user,
-        memberships,
-        phoneHint: user?.phone || savoriaAuth?.phone,
-        accessToken,
-        openAuthModal: guestAuth?.openAuthModal,
-      })
-      return
-    }
-    guestAuth?.openAuthModal({
-      mode: 'login',
-      redirectPath: ORDER_DASHBOARD,
-    })
+    openLogin(ORDER_DASHBOARD)
   }
 
   const handleSignUp = (e) => {
     e?.preventDefault?.()
     closeMenu()
+    if (isLoggedIn) {
+      goToDashboard()
+      return
+    }
     guestAuth?.openAuthModal({
       mode: 'signup',
       redirectPath: ORDER_DASHBOARD,
@@ -249,15 +226,7 @@ export default function SiteNavbar({ variant = 'light' }) {
                     type="button"
                     onClick={() => {
                       closeMenu()
-                      navigateToProfileDashboard({
-                        navigate,
-                        dispatch,
-                        user,
-                        memberships,
-                        phoneHint: user?.phone || savoriaAuth?.phone,
-                        accessToken,
-                        openAuthModal: guestAuth?.openAuthModal,
-                      })
+                      goToDashboard()
                     }}
                     className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >

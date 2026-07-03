@@ -140,7 +140,7 @@ function OrderShell() {
           </div>
         </header>
 
-        <nav className="lg:hidden shrink-0 flex border-b border-white/10 bg-slate-950/80">
+        <nav className="user-panel-mobile-nav lg:hidden shrink-0 flex border-b border-white/10 bg-slate-950/80">
           {NAV.map((item) => (
             <NavLink
               key={item.to}

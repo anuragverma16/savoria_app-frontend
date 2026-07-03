@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
 import { initSavoriaSessionFromParams } from '../../utils/savoriaGuestSession'
-import { orderDashboardAfterScan } from '../../utils/orderPanelPaths'
+import { buildOrderPanelPath } from '../../utils/orderPanelPaths'
 
 /** QR entry at /order — open user dashboard for restaurant + table params */
 export default function SavoriaQrEntry() {
@@ -17,7 +17,7 @@ export default function SavoriaQrEntry() {
   if (restaurantId && tableId) {
     return (
       <Navigate
-        to={orderDashboardAfterScan(restaurantId, { _id: tableId, tableId })}
+        to={buildOrderPanelPath('menu', restaurantId, { _id: tableId, tableId })}
         replace
       />
     )

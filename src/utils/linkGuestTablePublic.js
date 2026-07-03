@@ -2,7 +2,7 @@ import { publicAPI } from '../api/dineflow'
 import { initCart } from '../store/slices/cartSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
-import { orderDashboardAfterScan } from './orderPanelPaths'
+import { buildOrderPanelPath } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
@@ -125,7 +125,7 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel = true) {
   if (isOrderPanel) {
-    return orderDashboardAfterScan(restaurantId, table)
+    return buildOrderPanelPath('menu', restaurantId, table)
   }
   return buildMenuQrPath(restaurantId, table._id)
 }

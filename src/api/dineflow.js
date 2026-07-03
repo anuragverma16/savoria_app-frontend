@@ -1,9 +1,24 @@
 import axios from 'axios'
 
 function resolveApiBaseUrl() {
-  const raw = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '')
-  if (raw.endsWith('/api')) return raw
-  return `${raw}/api`
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim()
+  if (envUrl) {
+    const raw = envUrl.replace(/\/$/, '')
+    if (raw.endsWith('/api')) return raw
+    return `${raw}/api`
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname, origin } = window.location
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return '/api'
+    }
+    if (hostname.includes('vercel.app')) {
+      return `${origin.replace(/\/$/, '')}/api`
+    }
+  }
+
+  return '/api'
 }
 
 export const API_BASE_URL = resolveApiBaseUrl()
@@ -55,7 +70,10 @@ error.config.headers.Authorization = `Bearer ${data.accessToken}`
           return api(error.config)
         } catch {
           localStorage.removeItem('dineflow_auth')
-          window.location.href = '/'
+          const path = window.location.pathname || ''
+          if (!path.startsWith('/order') && !path.startsWith('/scan')) {
+            window.location.href = '/'
+          }
         }
       }
     }

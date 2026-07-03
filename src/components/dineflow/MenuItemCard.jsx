@@ -1,8 +1,8 @@
 import { FiPlus } from 'react-icons/fi'
 import { FaLeaf } from 'react-icons/fa'
 import { formatPortionSize } from '../../utils/portionSize'
-
-const FALLBACK_IMG = 'https://images.unsplash.com/photo-1512621776951-a41bdfeb9303?w=200&q=80&fit=crop'
+import OptimizedImage from '../OptimizedImage'
+import { IMAGE_FALLBACK } from '../../utils/optimizeImageUrl'
 
 export function itemPrice(item) {
   return item.price - (item.price * (item.discount || 0) / 100)
@@ -31,9 +31,11 @@ export default function MenuItemCard({ item, onAdd, compact = false, layout = 'h
       )}
 
       <div className={`relative shrink-0 ${imgSize} rounded-xl overflow-hidden bg-white/5`}>
-        <img
-          src={item.image?.url || FALLBACK_IMG}
+        <OptimizedImage
+          src={item.image?.url || IMAGE_FALLBACK}
           alt={item.name}
+          width={compact ? 128 : 160}
+          quality={65}
           className={`w-full h-full object-cover ${!inStock ? 'grayscale-[0.6]' : ''}`}
         />
       </div>

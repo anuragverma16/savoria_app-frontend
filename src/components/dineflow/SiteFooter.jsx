@@ -32,9 +32,9 @@ const COLUMNS = {
 export default function SiteFooter() {
   return (
     <footer className="df-footer mt-auto">
-      <div className="max-w-7xl mx-auto px-5 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-12 mb-14">
-          <div className="lg:col-span-2">
+      <div className="max-w-7xl mx-auto px-4 sm:px-5 py-12 sm:py-16">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-6 gap-8 sm:gap-12 mb-10 sm:mb-14">
+          <div className="lg:col-span-2 col-span-2">
             <div className="flex items-center gap-3 mb-5 text-white">
               <BrandMark size="md" />
               <BrandLogo className="text-xl" accentClass="text-orange-400" />

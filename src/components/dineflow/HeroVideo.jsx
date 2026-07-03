@@ -1,8 +1,13 @@
-const DEFAULT_POSTER =
-  'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=1920&q=90&auto=format&fit=crop'
+import { optimizeImageUrl, IMAGE_FALLBACK } from '../../utils/optimizeImageUrl'
+
+const DEFAULT_POSTER = optimizeImageUrl(
+  'https://images.unsplash.com/photo-1525351484163-7529414344d8',
+  { width: 1280, quality: 65 },
+)
 
 export default function HeroVideo({ variant = 'default', poster = DEFAULT_POSTER, src = '/videos/pizza.mp4' }) {
   const isCinema = variant === 'cinema'
+  const resolvedPoster = optimizeImageUrl(poster, { width: 960, quality: 65 })
 
   return (
     <div
@@ -19,8 +24,8 @@ export default function HeroVideo({ variant = 'default', poster = DEFAULT_POSTER
         muted
         defaultMuted
         playsInline
-        preload="auto"
-        poster={poster}
+        preload="metadata"
+        poster={resolvedPoster}
       >
         <source src={src} type="video/mp4" />
       </video>

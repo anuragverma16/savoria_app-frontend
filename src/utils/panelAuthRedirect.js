@@ -11,18 +11,24 @@ import { resetPageLocks } from './resetPageLocks'
 const ORDER_DASHBOARD = '/order/dashboard'
 
 function resolveReturnPath(from, user) {
+  const role = user?.role
   if (!from?.pathname) {
-    return user?.role === 'user' ? ORDER_DASHBOARD : null
+    return role === 'user' ? ORDER_DASHBOARD : null
   }
-  if (user?.role === 'user' && (
+  const path = `${from.pathname}${from.search || ''}`
+  if (role === 'staff' || role === 'admin' || role === 'superadmin') {
+    if (path.startsWith('/order')) return null
+    return path
+  }
+  if (role === 'user' && (
     /\/user\/(tables|scan|menu)/.test(from.pathname)
     || from.pathname === '/book-table'
     || from.pathname === '/scan-table'
     || from.pathname.startsWith('/order')
   )) {
-    return `${from.pathname}${from.search || ''}`
+    return path
   }
-  return `${from.pathname}${from.search || ''}`
+  return path
 }
 
 /** Post-OTP navigation for admin / staff / user panel sign-in */
@@ -71,7 +77,7 @@ export function navigateAfterPanelAuth({
       { ...user, role: effectiveRole },
       membership || { restaurant: targetRestaurant },
     )
-    || ORDER_DASHBOARD
+    || (effectiveRole === 'user' ? ORDER_DASHBOARD : null)
 
   if (!path) {
     toast.error('Could not open your panel. Check your account role and restaurant access.')

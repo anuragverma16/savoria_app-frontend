@@ -6,7 +6,7 @@ import {
   showOtpErrorToast,
   showOtpVerifyErrorToast,
 } from '../../utils/appToast'
-import { maskPhone } from '../../utils/savoriaOtp'
+import { maskPhone } from '../../utils/savoriaWhatsappOtp'
 import { sendWhatsappOtp, verifyWhatsappOtp } from '../../utils/savoriaWhatsappOtp'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 

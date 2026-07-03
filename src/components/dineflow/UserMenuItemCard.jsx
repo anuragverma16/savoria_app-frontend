@@ -2,8 +2,10 @@ import { FiPlus, FiMinus, FiLock } from 'react-icons/fi'
 import { FaLeaf } from 'react-icons/fa'
 import { itemPrice } from './MenuItemCard'
 import { formatPortionSize } from '../../utils/portionSize'
+import OptimizedImage from '../OptimizedImage'
+import { IMAGE_FALLBACK } from '../../utils/optimizeImageUrl'
 
-export const MENU_FALLBACK_IMG = 'https://images.unsplash.com/photo-1512621776951-a41bdfeb9303?w=400&q=80&fit=crop'
+export const MENU_FALLBACK_IMG = IMAGE_FALLBACK
 
 export function menuItemImageUrl(item) {
   if (!item) return MENU_FALLBACK_IMG
@@ -112,11 +114,12 @@ export default function UserMenuItemCard({
         }`}
       >
         <div className={`relative overflow-hidden bg-slate-900 shrink-0 ${isPopular ? 'h-[200px]' : 'aspect-[5/4]'}`}>
-          <img
+          <OptimizedImage
             src={imageUrl}
             alt={item.name}
+            width={isPopular ? 400 : 320}
+            quality={65}
             className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${!inStock ? 'grayscale' : ''}`}
-            loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
           {item.isVeg && (
@@ -180,11 +183,12 @@ export default function UserMenuItemCard({
       }`}
     >
       <div className={`relative shrink-0 ${imgCls} rounded-xl overflow-hidden ring-1 ring-white/10 bg-slate-900`}>
-        <img
+        <OptimizedImage
           src={imageUrl}
           alt={item.name}
+          width={cardVariant === 'compact' ? 128 : 160}
+          quality={65}
           className={`w-full h-full object-cover ${!inStock ? 'grayscale' : ''}`}
-          loading="lazy"
         />
         {!inStock && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-[8px] font-bold uppercase text-red-200 text-center px-0.5">

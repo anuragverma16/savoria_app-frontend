@@ -1997,3 +1997,68 @@ body.sv-scanner-open {
   border-color: rgba(251, 191, 36, 0.6);
   color: #fde68a;
 }
+
+/* —— Mobile-first landing & site polish —— */
+.lp-landing {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.lp-cta-btn {
+  max-width: 100%;
+}
+
+@media (max-width: 639px) {
+  .lp-hero .lp-split-line {
+    font-size: clamp(1.65rem, 7.5vw, 2.35rem) !important;
+    line-height: 1.08 !important;
+  }
+
+  .lp-hero-sub {
+    font-size: 0.95rem !important;
+  }
+
+  .lp-hero-cta .lp-nav-cta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .lp-contact-panel {
+    min-height: 0 !important;
+  }
+
+  .lp-contact-info {
+    padding-bottom: 0 !important;
+  }
+
+  .lp-contact-form {
+    margin-left: 0 !important;
+    max-width: none !important;
+  }
+
+  .lp-video-shell {
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  .lp-nav-mobile-panel {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+  }
+
+  .df-footer .grid {
+    gap: 2rem;
+  }
+
+  .user-panel-mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+@media (max-width: 380px) {
+  .lp-stat-num {
+    font-size: 1.75rem !important;
+  }
+
+  .lp-brand-title {
+    word-break: break-word;
+  }
+}

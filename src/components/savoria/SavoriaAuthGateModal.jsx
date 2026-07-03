@@ -153,6 +153,12 @@ export default function SavoriaAuthGateModal({
           memberships: authPayload.memberships,
           loginRole: 'superadmin',
         }, 'superadmin')
+      } else if (apiUser.role === 'staff' || apiUser.role === 'admin') {
+        hydrateTenantAfterAuth(dispatch, {
+          user: apiUser,
+          memberships: authPayload.memberships,
+          loginRole: apiUser.role,
+        }, apiUser.role)
       } else {
         hydrateTenantAfterAuth(dispatch, {
           user: apiUser,
@@ -168,6 +174,23 @@ export default function SavoriaAuthGateModal({
     }
 
     const firstName = user?.name?.split(' ')[0] || 'Guest'
+    const panelRole = authPayload?.user?.role
+
+    if (authPayload?.accessToken && (panelRole === 'staff' || panelRole === 'admin')) {
+      toast.success(`Welcome, ${firstName}!`)
+      closeAuthModal()
+      onClose()
+      navigateAfterPanelAuth({
+        user: authPayload.user,
+        memberships: authPayload.memberships,
+        loginRole: panelRole,
+        from: returnTo,
+        dispatch,
+        navigate,
+      })
+      return
+    }
+
     completeAuth({
       name: user?.name,
       phone: user?.phone || phoneHint,
@@ -186,7 +209,13 @@ export default function SavoriaAuthGateModal({
       return
     }
 
-    if (redirectPath) navigate(redirectPath || '/order/dashboard')
+    if (redirectPath && !redirectPath.startsWith('/order')) {
+      navigate(redirectPath)
+      return
+    }
+    if (panelRole === 'user' || !authPayload?.accessToken) {
+      navigate(redirectPath || '/order/dashboard')
+    }
   }
 
   const switchMode = (next) => {

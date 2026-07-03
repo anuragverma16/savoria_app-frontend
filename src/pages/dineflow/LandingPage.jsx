@@ -9,43 +9,16 @@ import HeroVideo from '../../components/dineflow/HeroVideo'
 import SpotlightVideo from '../../components/dineflow/SpotlightVideo'
 import SpoonLogo from '../../components/dineflow/SpoonLogo'
 import { useLandingGsap } from '../../hooks/useLandingGsap'
-import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
+import { useAppAuth } from '../../hooks/useAppAuth'
 import { publicAPI } from '../../api/dineflow'
 import OptimizedImage from '../../components/OptimizedImage'
+import { LANDING_IMAGES as FOOD } from '../../data/landingImages'
+import { preloadImage } from '../../utils/optimizeImageUrl'
 import {
   showContactErrorToast,
   showContactSentToast,
   showContactValidationToast,
 } from '../../utils/appToast'
-
-/** Hero food chips — local burger & noodles assets + pizza */
-const BURGER_HD = 'https://i.pinimg.com/736x/32/d1/ad/32d1ad6c8cf61340797e4f536c052b9b.jpg'
-const NOODLES_IMG = 'https://i.pinimg.com/736x/ac/e1/30/ace1309df3647bd066b9890809d4bc4d.jpg'
-const PIZZA_IMG =
-  'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=90&fit=crop'
-
-const FOOD = {
-  fallback: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&q=72&auto=format&fit=crop',
-  hero: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1280&q=72&auto=format&fit=crop',
-  heroPizza: PIZZA_IMG,
-  heroNoodles: NOODLES_IMG,
-  galleryPizza: 'https://images.unsplash.com/photo-1565299624946-b28f40a7ca7f?w=1200&q=90&fit=crop',
-  galleryBurger: BURGER_HD,
-  galleryPasta: 'https://images.unsplash.com/photo-1473093290779-441010016dd3?w=800&q=72&auto=format&fit=crop',
-  galleryWings: 'https://images.unsplash.com/photo-1626082897516-8afb70ce5d3a?w=800&q=72&auto=format&fit=crop',
-  galleryTacos: 'https://images.unsplash.com/photo-1565299585325-38d6e1552959?w=800&q=72&auto=format&fit=crop',
-  gallerySteak: 'https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=800&q=72&auto=format&fit=crop',
-  galleryDessert: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800&q=72&auto=format&fit=crop',
-  galleryRamen: NOODLES_IMG,
-  diningRoom: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=72&auto=format&fit=crop',
-  kitchen: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=72&auto=format&fit=crop',
-  spread: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800&q=72&auto=format&fit=crop',
-  rooftop: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=72&auto=format&fit=crop',
-  contact: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1280&q=72&auto=format&fit=crop',
-  cta: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1280&q=72&auto=format&fit=crop',
-  videoPoster: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=1280&q=72&auto=format&fit=crop',
-  demoVideo: '/videos/add-video.mp4',
-}
 
 const HERO_CHIPS = [
   { src: FOOD.heroPizza, label: 'Pizza' },
@@ -78,7 +51,7 @@ const PLANS = [
   { name: 'Enterprise', price: 'Custom', period: '', features: ['Multi-location', 'API', 'Priority support', 'Branding'], accent: 'from-lime-600 to-green-700' },
 ]
 
-function HdImg({ src, alt, className = '', eager = false, width = 800, fullWidth = false }) {
+function HdImg({ src, alt, className = '', eager = false, width = 640, fullWidth = false }) {
   return (
     <OptimizedImage
       src={src}
@@ -86,15 +59,8 @@ function HdImg({ src, alt, className = '', eager = false, width = 800, fullWidth
       className={className}
       eager={eager}
       width={width}
+      quality={eager ? 72 : 65}
       fullWidth={fullWidth}
-      onError={(e) => {
-        const el = e.currentTarget
-        if (!el.dataset.fallback) {
-          el.dataset.fallback = '1'
-          el.src = FOOD.fallback
-          el.removeAttribute('srcset')
-        }
-      }}
     />
   )
 }
@@ -108,11 +74,16 @@ const EMPTY_CONTACT_FORM = {
 
 export default function LandingPage() {
   const pageRef = useRef(null)
-  const guestAuth = useSavoriaGuestOptional()
+  const { isLoggedIn, displayName, goToDashboard, openLogin } = useAppAuth()
   const [contactForm, setContactForm] = useState(EMPTY_CONTACT_FORM)
   const [contactSending, setContactSending] = useState(false)
   const [platformStats, setPlatformStats] = useState({ restaurants: 0, orders: 0 })
   useLandingGsap(pageRef)
+
+  useEffect(() => {
+    const cleanup = preloadImage(FOOD.hero, { width: 1280, quality: 70 })
+    return cleanup
+  }, [])
 
   useEffect(() => {
     publicAPI.getPlatformStats()
@@ -167,8 +138,9 @@ export default function LandingPage() {
     }
   }
 
-  const openLogin = () => {
-    guestAuth?.openAuthModal({ mode: 'login', redirectPath: '/order/dashboard' })
+  const handleGetStarted = () => {
+    if (isLoggedIn) goToDashboard()
+    else openLogin()
   }
 
   const scrollToDemo = () => {
@@ -196,12 +168,12 @@ export default function LandingPage() {
             <div className="lp-orb w-96 h-96 bg-amber-500/15 bottom-0 left-[-10%]" />
           </div>
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-5 pt-28 pb-16 lg:pb-24">
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-5 pt-24 sm:pt-28 pb-12 sm:pb-16 lg:pb-24">
             <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-center">
               <div className="lg:col-span-7">
-                <div className="lp-hero-badge inline-flex items-center gap-3 px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md mb-8">
+                <div className="lp-hero-badge inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md mb-6 sm:mb-8 max-w-full">
                   <SpoonLogo size={28} />
-                  <span className="text-xs font-bold uppercase tracking-[0.28em] text-amber-300">Savoria SaaS · Restaurant OS</span>
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.28em] text-amber-300 truncate">Savoria SaaS · Restaurant OS</span>
                 </div>
 
                 <h1 className="lp-brand-title text-white mb-6">
@@ -388,10 +360,10 @@ export default function LandingPage() {
                     </ul>
                     <button
                       type="button"
-                      onClick={openLogin}
+                      onClick={handleGetStarted}
                       className={`block w-full text-center py-3 rounded-xl font-bold text-sm text-white bg-gradient-to-r ${plan.accent} df-btn-press`}
                     >
-                      Get started
+                      {isLoggedIn ? 'Open dashboard' : 'Get started'}
                     </button>
                   </div>
                 </div>
@@ -401,9 +373,9 @@ export default function LandingPage() {
         </section>
 
         {/* CONTACT — large full-width panel */}
-        <section id="contact" className="lp-contact-section py-16 sm:py-20 scroll-mt-28 bg-[#030712]">
-          <div className="max-w-7xl mx-auto px-5">
-            <div className="lp-contact-panel relative overflow-hidden rounded-3xl min-h-[520px] lg:min-h-[560px] flex flex-col lg:flex-row">
+        <section id="contact" className="lp-contact-section py-12 sm:py-16 md:py-20 scroll-mt-28 bg-[#030712]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-5">
+            <div className="lp-contact-panel relative overflow-hidden rounded-2xl sm:rounded-3xl min-h-0 lg:min-h-[560px] flex flex-col lg:flex-row">
               <div className="absolute inset-0 overflow-hidden" aria-hidden>
                 <HdImg src={FOOD.contact} alt="" className="lp-contact-bg-img" />
                 <div className="absolute inset-0 bg-black/55" />
@@ -483,22 +455,27 @@ export default function LandingPage() {
         </section>
 
         {/* CTA */}
-        <section className="max-w-7xl mx-auto px-5 pb-24">
-          <div className="relative rounded-3xl overflow-hidden lp-reveal min-h-[340px] flex items-center justify-center text-center p-10 sm:p-14">
-            <HdImg src={FOOD.cta} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        <section className="lp-cta-section max-w-7xl mx-auto px-4 sm:px-5 pb-20 sm:pb-24">
+          <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden lp-reveal min-h-[280px] sm:min-h-[340px] flex items-center justify-center text-center p-6 sm:p-10 md:p-14">
+            <HdImg src={FOOD.cta} alt="" className="absolute inset-0 w-full h-full object-cover" width={960} />
             <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-orange-950/50" />
-            <div className="relative z-10 max-w-2xl">
-              <SpoonLogo size={60} className="mx-auto mb-6" />
-              <h2 className="lp-brand-title text-4xl md:text-5xl font-bold text-white mb-4">
-                Ready to run smarter?
+            <div className="relative z-10 max-w-2xl w-full">
+              <SpoonLogo size={52} className="mx-auto mb-4 sm:mb-6 sm:hidden" />
+              <SpoonLogo size={60} className="mx-auto mb-6 hidden sm:block" />
+              <h2 className="lp-brand-title text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-3 sm:mb-4">
+                {isLoggedIn ? `Welcome back, ${displayName}` : 'Ready to run smarter?'}
               </h2>
-              <p className="text-white/75 mb-8 text-lg">Sign in and open your restaurant dashboard in seconds.</p>
+              <p className="text-white/75 mb-6 sm:mb-8 text-sm sm:text-lg px-1">
+                {isLoggedIn
+                  ? 'Your dashboard is ready — pick up where you left off.'
+                  : 'Sign in and open your restaurant dashboard in seconds.'}
+              </p>
               <button
                 type="button"
-                onClick={openLogin}
-                className="lp-nav-cta px-12 py-4 text-lg inline-flex items-center gap-2"
+                onClick={handleGetStarted}
+                className="lp-nav-cta lp-cta-btn w-full sm:w-auto px-8 sm:px-12 py-3.5 sm:py-4 text-base sm:text-lg inline-flex items-center justify-center gap-2 mx-auto"
               >
-                Sign in <FiArrowRight />
+                {isLoggedIn ? 'Open dashboard' : 'Sign in'} <FiArrowRight />
               </button>
             </div>
           </div>
