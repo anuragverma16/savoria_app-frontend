@@ -14,8 +14,20 @@ import { syncGuestOrderSessionAfterAuth } from '../../utils/syncGuestOrderSessio
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
+import WhatsappOtpAuthForm from '../dineflow/WhatsappOtpAuthForm'
+import { navigateAfterPanelAuth } from '../../utils/panelAuthRedirect'
+import { normalizeLoginRole } from '../../utils/panelRole'
 
-export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, redirectPath }) {
+const PANEL_ROLE_LABELS = { admin: 'Admin', staff: 'Staff' }
+
+export default function SavoriaAuthGateModal({
+  open,
+  mode = 'login',
+  onClose,
+  redirectPath,
+  loginRole = 'user',
+  returnTo,
+}) {
   const modalRef = useRef(null)
   const overlayRef = useRef(null)
   const headerRef = useRef(null)
@@ -37,6 +49,9 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
 
   const activeMode = mode || authGateMode || 'login'
   const isSignup = activeMode === 'signup'
+  const panelRole = normalizeLoginRole(loginRole)
+  const isPanelLogin = panelRole === 'admin' || panelRole === 'staff'
+  const panelRoleLabel = PANEL_ROLE_LABELS[panelRole] || 'User'
 
   const animateIn = useCallback(() => {
     const tl = gsap.timeline()
@@ -47,8 +62,10 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
         '-=0.2',
       )
       .fromTo(headerRef.current, { opacity: 0, x: -12 }, { opacity: 1, x: 0, duration: 0.35 }, '-=0.3')
-      .fromTo(tabsRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3 }, '-=0.2')
-      .fromTo(contentRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35 }, '-=0.15')
+    if (tabsRef.current) {
+      tl.fromTo(tabsRef.current, { opacity: 0 }, { opacity: 1, duration: 0.3 }, '-=0.2')
+    }
+    tl.fromTo(contentRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35 }, '-=0.15')
     return tl
   }, [])
 
@@ -89,6 +106,22 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
   }
 
   const handleAuthSuccess = (result) => {
+    if (isPanelLogin && result?.accessToken) {
+      const name = result.user?.name?.split(/\s+/)[0] || 'there'
+      toast.success(`Welcome, ${name}!`)
+      closeAuthModal()
+      onClose()
+      navigateAfterPanelAuth({
+        user: result.user,
+        memberships: result.memberships,
+        loginRole: panelRole,
+        from: returnTo,
+        dispatch,
+        navigate,
+        isSuperAdminFlag: Boolean(result.isSuperAdmin),
+      })
+      return
+    }
     applyAuthResult(result)
   }
 
@@ -193,11 +226,14 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
               <div className="min-w-0">
                 <BrandLogo className="text-lg text-white leading-none" accentClass="text-emerald-400" />
                 <h2 className="text-base font-bold text-white mt-1">
-                  {isSignup ? 'Sign up' : 'Login'}
+                  {isPanelLogin
+                    ? `${panelRoleLabel} sign in`
+                    : (isSignup ? 'Sign up' : 'Login')}
                 </h2>
               </div>
             </div>
 
+            {!isPanelLogin && (
             <div ref={tabsRef} className="sv-auth-tabs">
               <button
                 ref={loginTabRef}
@@ -217,9 +253,24 @@ export default function SavoriaAuthGateModal({ open, mode = 'login', onClose, re
               </button>
               <div ref={tabIndicatorRef} className="sv-auth-tab-indicator" style={{ width: '50%' }} />
             </div>
+            )}
 
-            <div ref={contentRef} key={activeMode}>
-              <SavoriaAuthPanel mode={activeMode} onSuccess={handleAuthSuccess} />
+            <div ref={contentRef} key={isPanelLogin ? `panel-${panelRole}` : activeMode}>
+              {isPanelLogin ? (
+                <div className="sv-auth-box sv-auth-box--user pt-2">
+                  <p className="text-white/60 text-sm mb-4">
+                    Sign in with WhatsApp OTP — enter the 6-digit code sent to your mobile.
+                  </p>
+                  <WhatsappOtpAuthForm
+                    mode="login"
+                    loginRole={panelRole}
+                    onSuccess={handleAuthSuccess}
+                    dispatchCredentials
+                  />
+                </div>
+              ) : (
+                <SavoriaAuthPanel mode={activeMode} onSuccess={handleAuthSuccess} />
+              )}
             </div>
           </div>
         </div>

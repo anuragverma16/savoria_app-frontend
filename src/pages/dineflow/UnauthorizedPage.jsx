@@ -32,7 +32,7 @@ export default function UnauthorizedPage() {
           Back to home
         </Link>
         <Link
-          to="/login?role=user"
+          to="/sign-in?role=user"
           className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-orange-500 text-white text-sm font-semibold hover:bg-orange-600 transition-colors"
         >
           Sign in

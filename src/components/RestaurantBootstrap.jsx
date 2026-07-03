@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { platformAPI } from '../api/dineflow'
 import { setActiveRestaurant, setImpersonating } from '../store/slices/tenantSlice'
+import { resolveAuthGateState } from '../utils/authEntry'
 import {
   activeRestaurantId,
   getRedirectAfterLogin,
@@ -48,7 +49,11 @@ export default function RestaurantBootstrap({ children }) {
         } else if (user) {
           navigate('/unauthorized', { replace: true })
         } else {
-          navigate('/login', { replace: true })
+          const gate = resolveAuthGateState(`/restaurant/${restaurantId}/admin`)
+          navigate(gate.path, {
+            replace: true,
+            state: { openAuth: true, authRole: gate.authRole, from: { pathname: `/restaurant/${restaurantId}/admin` } },
+          })
         }
         finish()
         return

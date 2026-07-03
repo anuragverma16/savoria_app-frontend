@@ -55,7 +55,7 @@ error.config.headers.Authorization = `Bearer ${data.accessToken}`
           return api(error.config)
         } catch {
           localStorage.removeItem('dineflow_auth')
-          window.location.href = '/login'
+          window.location.href = '/'
         }
       }
     }

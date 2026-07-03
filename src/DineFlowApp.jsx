@@ -3,8 +3,7 @@ import { useSelector } from 'react-redux'
 import { Toaster } from 'react-hot-toast'
 
 import LandingPage from './pages/dineflow/LandingPage'
-import DineFlowLogin from './pages/dineflow/LoginPage'
-import UserSignInPage from './pages/dineflow/UserSignInPage'
+import SignInRedirect from './pages/dineflow/SignInRedirect'
 import UnauthorizedPage from './pages/dineflow/UnauthorizedPage'
 import SuspendedRestaurantPage from './pages/dineflow/SuspendedRestaurantPage'
 import PlatformLayout from './layouts/PlatformLayout'
@@ -43,27 +42,20 @@ import SavoriaMenuPage from './pages/savoria/SavoriaMenuPage'
 import SavoriaCartPage from './pages/savoria/SavoriaCartPage'
 import SavoriaCheckoutPage from './pages/savoria/SavoriaCheckoutPage'
 import SavoriaOrderSuccessPage from './pages/savoria/SavoriaOrderSuccessPage'
-import CustomerOrderLayout from './layouts/CustomerOrderLayout'
 import CustomerTableGuard from './components/CustomerTableGuard'
 import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
 import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
 import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
+import { resolveAuthGateState } from './utils/authEntry'
 import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
 import AppAuthModal from './components/AppAuthModal'
-
-function resolveLoginPath(pathname) {
-  if (pathname.startsWith('/platform')) return '/'
-  if (/^\/restaurant\/[^/]+\/user(\/|$)/.test(pathname)) return '/login?role=user'
-  if (/^\/restaurant\/[^/]+\/(staff|orders|kitchen|tables|menu-stock)(\/|$)/.test(pathname)) return '/login?role=staff'
-  if (/^\/restaurant\//.test(pathname)) return '/login?role=admin'
-  return '/login'
-}
 
 function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) {
   const { user, accessToken } = useSelector((s) => s.auth)
   const location = useLocation()
-  const target = loginPath ?? resolveLoginPath(location.pathname)
+  const gate = resolveAuthGateState(location.pathname)
+  const target = loginPath ?? gate.path
 
   if (!accessToken || !user) {
     return (
@@ -71,6 +63,8 @@ function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) 
         to={target}
         state={{
           from: location,
+          openAuth: true,
+          authRole: gate.authRole,
           ...(openOtpOnLogin ? { openAuth: true } : {}),
         }}
         replace
@@ -91,7 +85,14 @@ function RestaurantGuard({ children }) {
   const isSuperAdmin = isSuperAdminUser(user)
 
   if (!accessToken || !user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    const gate = resolveAuthGateState(location.pathname)
+    return (
+      <Navigate
+        to={gate.path}
+        state={{ from: location, openAuth: true, authRole: gate.authRole }}
+        replace
+      />
+    )
   }
 
   if (shouldBlockSuspendedRestaurant(user, activeRestaurant, { impersonating })) {
@@ -180,10 +181,11 @@ export default function DineFlowApp() {
     <>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<DineFlowLogin />} />
-        <Route path="/user/sign-in" element={<UserSignInPage />} />
+        <Route path="/login" element={<SignInRedirect />} />
+        <Route path="/sign-in" element={<SignInRedirect />} />
+        <Route path="/user/sign-in" element={<Navigate to="/sign-in?role=user" replace />} />
         <Route path="/portal" element={<PortalEntry />} />
-        <Route path="/staff" element={<Navigate to="/login?role=staff" replace />} />
+        <Route path="/staff" element={<Navigate to="/sign-in?role=staff" replace />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/restaurant-suspended" element={<SuspendedRestaurantPage />} />
         <Route path="/book-table" element={<TableQrLanding />} />
@@ -211,13 +213,11 @@ export default function DineFlowApp() {
 
         <Route path="/menu/:restaurantId/:tableId" element={<MenuQrRedirect />} />
 
-        <Route element={<CustomerOrderLayout />}>
-          <Route path="/cart" element={<Navigate to="/order/cart" replace />} />
-          <Route path="/checkout" element={<Navigate to="/order/checkout" replace />} />
-          <Route path="/order-success/:orderId" element={<LegacyOrderSuccessRedirect />} />
-          <Route path="/orders/:orderId" element={<LegacyOrderDetailRedirect />} />
-          <Route path="/orders" element={<Navigate to="/order/history" replace />} />
-        </Route>
+        <Route path="/cart" element={<Navigate to="/order/cart" replace />} />
+        <Route path="/checkout" element={<Navigate to="/order/checkout" replace />} />
+        <Route path="/order-success/:orderId" element={<LegacyOrderSuccessRedirect />} />
+        <Route path="/orders/:orderId" element={<LegacyOrderDetailRedirect />} />
+        <Route path="/orders" element={<Navigate to="/order/history" replace />} />
 
         <Route path="/platform" element={
           <ProtectedRoute roles={['superadmin']} loginPath="/" openOtpOnLogin>

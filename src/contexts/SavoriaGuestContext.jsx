@@ -24,6 +24,7 @@ export function SavoriaGuestProvider({ children }) {
   const [authGateOpen, setAuthGateOpen] = useState(false)
   const [authGateMode, setAuthGateMode] = useState('login')
   const [authGateRedirect, setAuthGateRedirect] = useState('/order/dashboard')
+  const [authGateLoginRole, setAuthGateLoginRole] = useState('user')
   const authSuccessRef = useRef(null)
 
   useEffect(() => {
@@ -87,6 +88,7 @@ export function SavoriaGuestProvider({ children }) {
   const openAuthModal = useCallback(({
     mode = 'login',
     redirectPath = '/order/dashboard',
+    loginRole = 'user',
     onSuccess,
   } = {}) => {
     if (isAuthenticated) {
@@ -96,12 +98,14 @@ export function SavoriaGuestProvider({ children }) {
     authSuccessRef.current = onSuccess || null
     setAuthGateMode(mode)
     setAuthGateRedirect(redirectPath)
+    setAuthGateLoginRole(loginRole || 'user')
     setAuthGateOpen(true)
     return false
   }, [isAuthenticated])
 
   const closeAuthModal = useCallback(() => {
     setAuthGateOpen(false)
+    setAuthGateLoginRole('user')
     authSuccessRef.current = null
   }, [])
 
@@ -149,6 +153,7 @@ export function SavoriaGuestProvider({ children }) {
     authGateOpen,
     authGateMode,
     authGateRedirect,
+    authGateLoginRole,
     setAuthGateOpen,
     setAuthGateMode,
     openAuthModal,
@@ -161,7 +166,7 @@ export function SavoriaGuestProvider({ children }) {
     ...ordering,
   }), [
     session, refreshSession, effectiveAuth, isAuthenticated, userDisplayName,
-    authGateOpen, authGateMode, authGateRedirect, openAuthModal, closeAuthModal,
+    authGateOpen, authGateMode, authGateRedirect, authGateLoginRole, openAuthModal, closeAuthModal,
     requireAuth, completeAuth, runAuthSuccess, logoutGuest, ordering,
   ])
 

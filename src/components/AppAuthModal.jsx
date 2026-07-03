@@ -10,6 +10,7 @@ export default function AppAuthModal() {
     authGateOpen,
     authGateMode,
     authGateRedirect,
+    authGateLoginRole,
     closeAuthModal,
     openAuthModal,
   } = useSavoriaGuest()
@@ -17,12 +18,21 @@ export default function AppAuthModal() {
   useEffect(() => {
     if (!location.state?.openAuth) return
 
-    const fromPath = location.state?.from?.pathname || ''
-    const redirectPath = fromPath.startsWith('/platform') ? '/platform' : '/order/dashboard'
+    const from = location.state?.from
+    const fromPath = from?.pathname || ''
+    const authRole = location.state?.authRole || 'user'
+
+    let redirectPath = location.state?.redirectPath
+    if (!redirectPath) {
+      if (fromPath.startsWith('/platform')) redirectPath = '/platform'
+      else if (fromPath) redirectPath = `${fromPath}${from.search || ''}`
+      else redirectPath = '/order/dashboard'
+    }
 
     openAuthModal({
       mode: 'login',
       redirectPath,
+      loginRole: authRole,
     })
 
     const nextState = { ...location.state }
@@ -35,6 +45,8 @@ export default function AppAuthModal() {
       open={authGateOpen}
       mode={authGateMode}
       redirectPath={authGateRedirect}
+      loginRole={authGateLoginRole}
+      returnTo={location.state?.from}
       onClose={closeAuthModal}
     />
   )
