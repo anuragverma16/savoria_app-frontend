@@ -47,7 +47,7 @@ export default function ScanLandingPage() {
           return
         }
 
-        navigate(menuPathAfterTableLink(restaurantId, result.table, false), { replace: true })
+        navigate(menuPathAfterTableLink(restaurantId, result.table, true), { replace: true })
       } catch (err) {
         if (cancelled) return
         if (err.code === 'INVALID_QR') {

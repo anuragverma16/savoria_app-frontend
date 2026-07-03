@@ -12,7 +12,7 @@ import {
 } from '../store/slices/cartSlice'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { loadUserTableSession } from '../utils/userTableSession'
-import { patchSavoriaSession } from '../utils/savoriaGuestSession'
+import { loadSavoriaSession, appendSavoriaSessionOrder, patchSavoriaSession } from '../utils/savoriaGuestSession'
 import { mapCustomerMenuItem, mapCustomerOrder } from '../utils/mapCustomerMenuItem'
 import { getCartRestaurantConflict } from '../utils/cartRestaurantConflict'
 import { useCustomerPaths } from './useCustomerPaths'
@@ -145,16 +145,28 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   }, [rid, session?.qrLinked, session?.tableId, session?.slug, activeRestaurant?.slug, dispatch])
 
   const refreshOrders = useCallback(async () => {
+    const session = loadSavoriaSession() || {}
+    const sessionOrders = (session.orders || [])
+      .map(mapCustomerOrder)
+      .filter((o) => !rid || String(o.restaurantId || session.rid) === String(rid))
+
     if (!rid || !isAuthenticated) {
-      setOrders([])
+      setOrders(sessionOrders)
       return
     }
+
     setOrdersLoading(true)
     try {
       const { data } = await restaurantAPI(rid).myOrders()
-      setOrders((data.orders || []).map(mapCustomerOrder))
+      const apiOrders = (data.orders || []).map(mapCustomerOrder)
+      const merged = [...apiOrders]
+      sessionOrders.forEach((so) => {
+        if (!merged.some((o) => o.id === so.id)) merged.push(so)
+      })
+      merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      setOrders(merged)
     } catch {
-      setOrders([])
+      setOrders(sessionOrders)
     } finally {
       setOrdersLoading(false)
     }
@@ -272,6 +284,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
 
     const { data } = await restaurantAPI(rid).placeCustomerOrder(fd)
     const mapped = mapCustomerOrder(data.order)
+    appendSavoriaSessionOrder({ ...mapped, restaurantId: rid })
     dispatch(clearCart())
     setAppliedCoupon(null)
     setLastPlacedOrderId(mapped?.id || mapped?.orderId)

@@ -127,7 +127,12 @@ export function hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole,
   )
 
   dispatch(setImpersonating(false))
-  dispatch(setViewAsPanel(null))
+  const panel = ['admin', 'staff', 'user'].includes(role) ? role : null
+  if (!isSuperAdminUser(user) && panel) {
+    dispatch(setViewAsPanel(panel))
+  } else {
+    dispatch(setViewAsPanel(null))
+  }
   if (restaurant) {
     dispatch(setActiveRestaurant(restaurant))
   } else {
@@ -147,22 +152,49 @@ export function hasRestaurantAccess(user, memberships, restaurantId) {
   return userRid && String(userRid) === String(restaurantId)
 }
 
+/** Routes shared by admin + staff — panel comes from role / viewAsPanel, not URL alone */
+const STAFF_SHARED_SEGMENTS = new Set(['orders', 'kitchen', 'tables'])
+
+/** Admin-only route segments under /restaurant/:id/… */
+const ADMIN_ONLY_SEGMENTS = new Set(['admin', 'menu', 'staff-team', 'coupons', 'analytics', 'settings'])
+
+/** Staff-only route segments */
+const STAFF_ONLY_SEGMENTS = new Set(['staff', 'menu-stock'])
+
 export function panelFromPathname(pathname = '') {
   if (/\/user(\/|$)/.test(pathname)) return 'user'
-  if (/\/staff(\/|$)/.test(pathname)) return 'staff'
-  return 'admin'
+
+  const match = pathname.match(/\/restaurant\/[^/]+\/([^/?]+)/)
+  const segment = match?.[1]
+  if (!segment) return null
+
+  if (STAFF_ONLY_SEGMENTS.has(segment)) return 'staff'
+  if (ADMIN_ONLY_SEGMENTS.has(segment)) return 'admin'
+  if (STAFF_SHARED_SEGMENTS.has(segment)) return null
+
+  return null
 }
 
 export function getEffectivePanel(user, { impersonating, viewAsPanel, pathname } = {}) {
-  if (user?.platformRole === 'superadmin' || user?.role === 'superadmin') {
-    if (impersonating && pathname) return panelFromPathname(pathname)
-    if (impersonating && viewAsPanel) return viewAsPanel
+  const fromUrl = pathname ? panelFromPathname(pathname) : null
+  const isSuperAdmin = isSuperAdminUser(user)
+
+  if (!isSuperAdmin) {
+    if (user?.role === 'admin') return 'admin'
+    if (user?.role === 'staff') return 'staff'
+    if (user?.role === 'user') return 'user'
+    if (viewAsPanel === 'admin' || viewAsPanel === 'staff' || viewAsPanel === 'user') {
+      return viewAsPanel
+    }
+    return fromUrl || 'user'
+  }
+
+  if (impersonating) {
+    if (fromUrl) return fromUrl
     return viewAsPanel || 'admin'
   }
-  if (user?.role === 'admin') return 'admin'
-  if (user?.role === 'staff') return 'staff'
-  if (user?.role === 'user') return 'user'
-  return 'user'
+
+  return viewAsPanel || 'admin'
 }
 
 export function getDefaultPath(restaurantId, panel) {

@@ -5,8 +5,10 @@ import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import SavoriaPublicBootstrap from '../components/SavoriaPublicBootstrap'
+import OrderScanBootstrap from '../components/OrderScanBootstrap'
 import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
 import { useOrderPanelPaths } from '../utils/orderPanelPaths'
+import { useOrderPanelQuery } from '../hooks/useOrderPanelQuery'
 import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
 import toast from 'react-hot-toast'
 
@@ -22,6 +24,7 @@ function OrderShell() {
   const { activeRestaurant } = useSelector((s) => s.tenant)
   const { user, accessToken } = useSelector((s) => s.auth)
   const panelPaths = useOrderPanelPaths()
+  const { withQuery } = useOrderPanelQuery()
   const {
     isAuthenticated,
     userDisplayName,
@@ -66,7 +69,7 @@ function OrderShell() {
           {NAV.map((item) => (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={withQuery(item.to)}
               end={item.end}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
@@ -141,7 +144,7 @@ function OrderShell() {
           {NAV.map((item) => (
             <NavLink
               key={item.to}
-              to={item.to}
+              to={withQuery(item.to)}
               end={item.end}
               className={({ isActive }) =>
                 `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold ${
@@ -156,7 +159,9 @@ function OrderShell() {
         </nav>
 
         <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-          <Outlet />
+          <OrderScanBootstrap>
+            <Outlet />
+          </OrderScanBootstrap>
         </main>
       </div>
     </div>

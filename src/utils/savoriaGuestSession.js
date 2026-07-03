@@ -35,6 +35,19 @@ export function linkTableFromScan(parsed = {}) {
   })
 }
 
+export function appendSavoriaSessionOrder(order) {
+  const current = loadSavoriaSession() || {}
+  const id = order?.id || order?._id || order?.orderId
+  if (!id) return current
+  const existing = (current.orders || []).filter((o) => (o.id || o._id) !== id)
+  const next = {
+    ...order,
+    id: String(id),
+    restaurantId: order.restaurantId || current.rid,
+  }
+  return patchSavoriaSession({ orders: [next, ...existing].slice(0, 50) })
+}
+
 export function initSavoriaSessionFromParams(searchParams) {
   const rid = searchParams.get('restaurantId') || searchParams.get('rid')
   const tableToken = searchParams.get('table')
@@ -56,6 +69,7 @@ export function initSavoriaSessionFromParams(searchParams) {
     auth: existing.auth || null,
     orders: existing.orders || [],
     scanLocked: existing.scanLocked || false,
+    qrLinked: existing.qrLinked || Boolean((rid || existing.rid) && (tableId || existing.tableId)),
     updatedAt: Date.now(),
   }
 

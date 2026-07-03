@@ -64,7 +64,7 @@ export default function RestaurantLayout() {
   useEffect(() => {
     if (!isSuperAdmin || !impersonating) return
     const fromUrl = panelFromPathname(location.pathname)
-    if (fromUrl !== viewAsPanel) {
+    if (fromUrl && fromUrl !== viewAsPanel) {
       dispatch(setViewAsPanel(fromUrl))
     }
   }, [location.pathname, isSuperAdmin, impersonating, viewAsPanel, dispatch])
@@ -100,7 +100,7 @@ export default function RestaurantLayout() {
             <NavLink
               key={item.to}
               to={`${base}/${item.to}`}
-              end={item.to === 'user'}
+              end={item.to === 'user' || item.to === 'staff' || item.to === 'admin'}
               className={({ isActive }) =>
                 `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
                   isActive ? 'df-nav-active font-medium' : 'text-white/50 hover:text-white hover:bg-white/5'

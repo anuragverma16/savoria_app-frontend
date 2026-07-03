@@ -4,7 +4,7 @@ import { FiShield, FiGrid, FiUsers, FiUser } from 'react-icons/fi'
 import { setImpersonating, setViewAsPanel } from '../store/slices/tenantSlice'
 import { ToggleButton, ToggleGroup } from './dineflow/ToggleGroup'
 import AnimatedButton from './dineflow/AnimatedButton'
-import { getSuperAdminPreviewPanels, isSuperAdminUser } from '../utils/panelRole'
+import { getSuperAdminPreviewPanels, isSuperAdminUser, getEffectivePanel } from '../utils/panelRole'
 
 const PANEL_META = {
   admin: { id: 'admin', label: 'Admin', icon: FiGrid, path: 'admin', color: 'orange' },
@@ -26,6 +26,11 @@ export default function SuperAdminPanelBar() {
   const base = `/restaurant/${rid}`
   const previewPanels = getSuperAdminPreviewPanels(activeRestaurant)
   const panels = previewPanels.map((id) => PANEL_META[id]).filter(Boolean)
+  const activePanel = getEffectivePanel(user, {
+    impersonating,
+    viewAsPanel,
+    pathname: location.pathname,
+  })
 
   const goToPanel = (panel) => {
     dispatch(setImpersonating(true))
@@ -57,7 +62,7 @@ export default function SuperAdminPanelBar() {
             {panels.map((p) => (
               <ToggleButton
                 key={p.id}
-                active={viewAsPanel === p.id || location.pathname.includes(`/${p.path}`)}
+                active={activePanel === p.id}
                 onClick={() => goToPanel(p)}
                 color={p.color}
                 variant="dark"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
+import { useLocation } from 'react-router-dom'
 import { restaurantAPI } from '../../../api/dineflow'
 import { io } from 'socket.io-client'
 import { getEffectivePanel } from '../../../utils/panelRole'
@@ -30,11 +31,12 @@ export default function OrdersPage() {
   const { activeRestaurant } = useSelector((s) => s.tenant)
   const { user } = useSelector((s) => s.auth)
   const tenant = useSelector((s) => s.tenant)
+  const location = useLocation()
   const [orders, setOrders] = useState([])
   const [statusFilter, setStatusFilter] = useState('')
   const rid = activeRestaurant?._id
 
-  const panel = getEffectivePanel(user, tenant)
+  const panel = getEffectivePanel(user, { ...tenant, pathname: location.pathname })
   const isStaffOnly = panel === 'staff'
   const isAdmin = panel === 'admin'
 

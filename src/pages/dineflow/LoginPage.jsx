@@ -7,7 +7,13 @@ import {
   FiMaximize2, FiZap, FiBarChart2, FiCheck,
 } from 'react-icons/fi'
 import WhatsappOtpAuthForm from '../../components/dineflow/WhatsappOtpAuthForm'
-import { getNavbarDashboardPath } from '../../utils/panelRole'
+import {
+  getRedirectAfterLogin,
+  hydrateTenantAfterAuth,
+  normalizeLoginRole,
+  RESTAURANT_SUSPENDED_MESSAGE,
+  shouldBlockSuspendedRestaurant,
+} from '../../utils/panelRole'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import ThemeToggle from '../../components/dineflow/ThemeToggle'
@@ -118,7 +124,10 @@ export default function DineFlowLogin() {
       return
     }
 
-    const path = getRedirectAfterLogin(user, membership || { restaurant: targetRestaurant })
+    const path = getRedirectAfterLogin(
+      { ...user, role: loginRole || user.role },
+      membership || { restaurant: targetRestaurant },
+    )
     if (!path) {
       toast.error('Could not open your panel. Check your account role and restaurant access.')
       return

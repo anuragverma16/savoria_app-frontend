@@ -2,10 +2,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiArrowLeft, FiClock, FiChevronRight } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
+import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 
 export default function SavoriaOrderHistoryPage() {
   const navigate = useNavigate()
-  const { orders, restaurant } = useSavoriaGuest()
+  const { orders, restaurant, paths } = useSavoriaGuest()
+  const { withQuery } = useOrderPanelQuery()
 
   return (
     <div className="max-w-lg mx-auto pb-8">
@@ -20,7 +22,7 @@ export default function SavoriaOrderHistoryPage() {
         {orders.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-[var(--sv-text-muted)] mb-4">No orders yet</p>
-            <button type="button" onClick={() => navigate('/order/menu')} className="sv-btn-primary">
+            <button type="button" onClick={() => navigate(withQuery(paths.menu))} className="sv-btn-primary">
               Start Ordering
             </button>
           </div>
@@ -33,7 +35,7 @@ export default function SavoriaOrderHistoryPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => navigate(`/order/orders/${order.id}`, { state: { order } })}
+                onClick={() => navigate(withQuery(paths.orderDetails(order.id)), { state: { order } })}
                 className="w-full sv-glass rounded-2xl p-4 text-left hover:scale-[1.01] transition-transform"
               >
                 <div className="flex items-start justify-between gap-3">

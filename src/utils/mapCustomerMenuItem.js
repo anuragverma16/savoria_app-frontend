@@ -42,5 +42,6 @@ export function mapCustomerOrder(order) {
     createdAt: order.createdAt,
     estimatedMinutes: order.estimatedPrepMinutes || 15,
     restaurantName: order.restaurant?.name,
+    restaurantId: order.restaurant?._id || order.restaurant,
   }
 }

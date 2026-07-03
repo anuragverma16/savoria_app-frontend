@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { FiArrowLeft, FiClock, FiChevronRight } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
+import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 
 const ACTIVE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready'])
 
 export default function SavoriaActiveOrdersPage() {
   const navigate = useNavigate()
   const { orders, restaurant, paths } = useSavoriaGuest()
+  const { withQuery } = useOrderPanelQuery()
 
   const activeOrders = useMemo(
     () => orders.filter((o) => ACTIVE_STATUSES.has(o.status)),
@@ -18,7 +20,7 @@ export default function SavoriaActiveOrdersPage() {
   return (
     <div className="max-w-lg mx-auto pb-8">
       <header className="sticky top-0 z-20 sv-glass px-4 py-4 flex items-center gap-3">
-        <button type="button" onClick={() => navigate(paths.dashboard)} className="sv-btn-ghost py-2 px-3">
+        <button type="button" onClick={() => navigate(withQuery(paths.dashboard))} className="sv-btn-ghost py-2 px-3">
           <FiArrowLeft size={18} />
         </button>
         <h1 className="sv-display font-bold text-lg flex-1">Active Orders</h1>
@@ -28,7 +30,7 @@ export default function SavoriaActiveOrdersPage() {
         {activeOrders.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-[var(--sv-text-muted)] mb-4">No active orders right now</p>
-            <button type="button" onClick={() => navigate(paths.menu)} className="sv-btn-primary">
+            <button type="button" onClick={() => navigate(withQuery(paths.menu))} className="sv-btn-primary">
               Browse Menu
             </button>
           </div>
@@ -41,7 +43,7 @@ export default function SavoriaActiveOrdersPage() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => navigate(`/order/orders/${order.id}`, { state: { order } })}
+                onClick={() => navigate(withQuery(paths.orderDetails(order.id)), { state: { order } })}
                 className="w-full sv-glass rounded-2xl p-4 text-left hover:scale-[1.01] transition-transform"
               >
                 <div className="flex items-start justify-between gap-3">

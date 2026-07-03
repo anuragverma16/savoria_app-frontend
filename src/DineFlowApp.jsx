@@ -38,7 +38,7 @@ import SavoriaUserDashboard from './pages/savoria/SavoriaUserDashboard'
 import SavoriaOrderHistoryPage from './pages/savoria/SavoriaOrderHistoryPage'
 import SavoriaActiveOrdersPage from './pages/savoria/SavoriaActiveOrdersPage'
 import SavoriaOrderDetailsPage from './pages/savoria/SavoriaOrderDetailsPage'
-import CustomerMenuQrEntry from './pages/savoria/CustomerMenuQrEntry'
+import MenuQrRedirect from './pages/savoria/MenuQrRedirect'
 import SavoriaMenuPage from './pages/savoria/SavoriaMenuPage'
 import SavoriaCartPage from './pages/savoria/SavoriaCartPage'
 import SavoriaCheckoutPage from './pages/savoria/SavoriaCheckoutPage'
@@ -136,6 +136,14 @@ function RoleGate({ allowed, children }) {
     return children
   }
 
+  if (user?.role === 'staff' && !allowed.includes('staff')) {
+    return <Navigate to={getDefaultPath(restaurantId, 'staff')} replace />
+  }
+
+  if (user?.role === 'admin' && !allowed.includes('admin') && !allowed.includes('staff')) {
+    return <Navigate to={getDefaultPath(restaurantId, 'admin')} replace />
+  }
+
   if (!allowed.includes(user?.role) && !isSuperAdmin) {
     return <Navigate to="/unauthorized" replace />
   }
@@ -150,6 +158,16 @@ function TablesRoute() {
   const panel = getEffectivePanel(user, { ...tenant, pathname: location.pathname })
   if (panel === 'staff') return <StaffTablesPage />
   return <TablesPage />
+}
+
+function LegacyOrderSuccessRedirect() {
+  const { orderId } = useParams()
+  return <Navigate to={`/order/success/${orderId}`} replace />
+}
+
+function LegacyOrderDetailRedirect() {
+  const { orderId } = useParams()
+  return <Navigate to={`/order/orders/${orderId}`} replace />
 }
 
 function PortalEntry() {
@@ -191,12 +209,13 @@ export default function DineFlowApp() {
           <Route path="success/:orderId" element={<SavoriaOrderSuccessPage />} />
         </Route>
 
+        <Route path="/menu/:restaurantId/:tableId" element={<MenuQrRedirect />} />
+
         <Route element={<CustomerOrderLayout />}>
-          <Route path="/menu/:restaurantId/:tableId" element={<CustomerMenuQrEntry />} />
-          <Route path="/cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
-          <Route path="/checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
-          <Route path="/order-success/:orderId" element={<SavoriaOrderSuccessPage />} />
-          <Route path="/orders/:orderId" element={<SavoriaOrderDetailsPage />} />
+          <Route path="/cart" element={<Navigate to="/order/cart" replace />} />
+          <Route path="/checkout" element={<Navigate to="/order/checkout" replace />} />
+          <Route path="/order-success/:orderId" element={<LegacyOrderSuccessRedirect />} />
+          <Route path="/orders/:orderId" element={<LegacyOrderDetailRedirect />} />
           <Route path="/orders" element={<Navigate to="/order/history" replace />} />
         </Route>
 

@@ -2,7 +2,33 @@ import { useMemo } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { buildTableBookingParams } from './tableBookingLink'
-import { buildMenuQrPath } from '../hooks/useCustomerPaths'
+
+/** Query string for QR-scoped order panel URLs */
+export function buildOrderQueryParams(restaurantId, tableOrParams = {}) {
+  const p = tableOrParams instanceof URLSearchParams
+    ? new URLSearchParams(tableOrParams)
+    : buildTableBookingParams({
+      restaurantId,
+      tableToken: tableOrParams?.tableToken || tableOrParams?.qrToken || tableOrParams?.table,
+      tableId: tableOrParams?._id || tableOrParams?.tableId,
+      tableNumber: tableOrParams?.tableNumber || tableOrParams?.no,
+    })
+  if (restaurantId) p.set('restaurantId', String(restaurantId))
+  const tableId = tableOrParams?._id || tableOrParams?.tableId
+  if (tableId) p.set('tableId', String(tableId))
+  return p
+}
+
+export function buildOrderPanelPath(segment, restaurantId, tableOrParams) {
+  const path = segment ? `/order/${String(segment).replace(/^\//, '')}` : '/order/dashboard'
+  const qs = buildOrderQueryParams(restaurantId, tableOrParams).toString()
+  return qs ? `${path}?${qs}` : path
+}
+
+/** After QR scan — open full user panel home for this restaurant + table */
+export function orderDashboardAfterScan(restaurantId, table) {
+  return buildOrderPanelPath('dashboard', restaurantId, table)
+}
 
 /** Shared paths for /order (guest) vs /restaurant/:rid/user (member) panels */
 export function useOrderPanelPaths() {

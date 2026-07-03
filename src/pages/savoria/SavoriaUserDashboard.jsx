@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { FiShoppingBag, FiClock, FiArrowRight, FiMapPin, FiPackage, FiUser } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
+import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 import SavoriaQrScanModal from '../../components/savoria/SavoriaQrScanModal'
 import SavoriaBrandedQrScanCard from '../../components/savoria/SavoriaBrandedQrScanCard'
 
@@ -13,6 +14,7 @@ export default function SavoriaUserDashboard() {
   const {
     restaurant, session, totals, orders, isAuthenticated, userDisplayName, refreshSession, paths,
   } = useSavoriaGuest()
+  const { withQuery } = useOrderPanelQuery()
   const [scanOpen, setScanOpen] = useState(false)
   const heroRef = useRef(null)
   const cardsRef = useRef(null)
@@ -33,7 +35,7 @@ export default function SavoriaUserDashboard() {
 
   const hasTable = Boolean(session.qrLinked || session.tableToken)
   const activeOrders = orders.filter((o) => ACTIVE_STATUSES.has(o.status))
-  const menuPath = paths.menuForTable(session.rid, session.tableId) || paths.menu
+  const menuPath = withQuery(paths.menu)
 
   return (
     <div className="min-h-[100dvh] px-4 py-8 pb-24 max-w-lg mx-auto">
@@ -87,7 +89,7 @@ export default function SavoriaUserDashboard() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/order/active')}
+            onClick={() => navigate(withQuery('/order/active'))}
             className="sv-glass rounded-2xl p-4 text-left hover:border-[var(--sv-accent)] transition-colors"
           >
             <FiPackage className="text-[var(--sv-accent)] mb-2" size={22} />
@@ -99,7 +101,7 @@ export default function SavoriaUserDashboard() {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => navigate('/order/history')}
+            onClick={() => navigate(withQuery('/order/history'))}
             className="sv-glass rounded-2xl p-4 text-left hover:border-[var(--sv-accent)] transition-colors"
           >
             <FiClock className="text-[var(--sv-accent)] mb-2" size={22} />
@@ -108,7 +110,7 @@ export default function SavoriaUserDashboard() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/order/settings')}
+            onClick={() => navigate(withQuery('/order/settings'))}
             className="sv-glass rounded-2xl p-4 text-left hover:border-[var(--sv-accent)] transition-colors"
           >
             <FiUser className="text-[var(--sv-accent)] mb-2" size={22} />
@@ -120,7 +122,7 @@ export default function SavoriaUserDashboard() {
         {orders.length > 0 && (
           <button
             type="button"
-            onClick={() => navigate('/order/history')}
+            onClick={() => navigate(withQuery('/order/history'))}
             className="w-full sv-glass rounded-2xl p-4 flex items-center justify-between hover:border-[var(--sv-accent)] transition-colors"
           >
             <div className="text-left">
