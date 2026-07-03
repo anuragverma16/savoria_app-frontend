@@ -3,7 +3,7 @@ import { initCart } from '../store/slices/cartSlice'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
-import { orderMenuAfterScan } from './orderPanelPaths'
+import { orderDashboardAfterScan } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
@@ -142,7 +142,7 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel = true) {
   if (isOrderPanel) {
-    return orderMenuAfterScan(restaurantId, table)
+    return orderDashboardAfterScan(restaurantId, table)
   }
   return buildMenuQrPath(restaurantId, table._id)
 }

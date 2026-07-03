@@ -50,6 +50,9 @@ export default function ScanLandingPage() {
         navigate(menuPathAfterTableLink(restaurantId, result.table, true), { replace: true })
       } catch (err) {
         if (cancelled) return
+        if (!err.response && !err.code) {
+          console.error('Scan link failed (network/CORS):', err.message)
+        }
         if (err.code === 'INVALID_QR') {
           navigate('/invalid-qr', { replace: true })
           return
