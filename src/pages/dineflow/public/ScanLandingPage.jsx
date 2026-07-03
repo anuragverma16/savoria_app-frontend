@@ -4,14 +4,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FiMaximize2 } from 'react-icons/fi'
 import { parseScanLink } from '../../../utils/scanLink'
 import { validateAndLinkScan, menuPathAfterTableLink } from '../../../utils/linkGuestTablePublic'
-import { initSavoriaSessionFromParams } from '../../../utils/savoriaGuestSession'
-
-function scanErrorMessage(err) {
-  if (err.code === 'ERR_NETWORK' || !err.response) {
-    return 'Cannot reach the server. Check your internet connection and try again.'
-  }
-  return err.response?.data?.message || err.message
-}
 
 /**
  * QR scan entry — /scan?restaurantId=&tableId=
@@ -39,8 +31,6 @@ export default function ScanLandingPage() {
         return
       }
 
-      initSavoriaSessionFromParams(searchParams)
-
       try {
         const result = await validateAndLinkScan(dispatch, restaurantId, tableId)
         if (cancelled) return
@@ -60,13 +50,6 @@ export default function ScanLandingPage() {
         navigate(menuPathAfterTableLink(restaurantId, result.table, true), { replace: true })
       } catch (err) {
         if (cancelled) return
-        if (err.code === 'ERR_NETWORK' || !err.response) {
-          navigate('/invalid-qr', {
-            replace: true,
-            state: { message: scanErrorMessage(err) },
-          })
-          return
-        }
         if (err.code === 'INVALID_QR') {
           navigate('/invalid-qr', { replace: true })
           return

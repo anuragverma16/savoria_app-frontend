@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { FiArrowLeft, FiShoppingBag } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
+import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 import SavoriaSearchBar from '../../components/savoria/SavoriaSearchBar'
 import SavoriaCategoryFilter from '../../components/savoria/SavoriaCategoryFilter'
 import SavoriaFoodCard from '../../components/savoria/SavoriaFoodCard'
@@ -41,6 +42,7 @@ export default function SavoriaMenuPage() {
     totals,
     paths,
   } = useSavoriaGuest()
+  const { withQuery } = useOrderPanelQuery()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
   const [selectedItem, setSelectedItem] = useState(null)
@@ -68,7 +70,7 @@ export default function SavoriaMenuPage() {
   }
 
   const handleCartClick = () => {
-    navigate(paths.cart)
+    navigate(withQuery(paths.cart))
   }
 
   return (

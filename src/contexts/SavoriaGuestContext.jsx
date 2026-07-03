@@ -34,11 +34,12 @@ export function SavoriaGuestProvider({ children }) {
   }, [searchParams])
 
   useEffect(() => {
-    const stored = loadSavoriaSession()?.auth
-    if (stored?.verified || stored?.verifiedAt) {
-      setAuth(stored)
+    const stored = loadSavoriaSession()
+    if (stored) {
+      setSession(stored)
+      if (stored.auth) setAuth(stored.auth)
     }
-  }, [location.pathname])
+  }, [location.pathname, location.search])
 
   const persist = useCallback((patch) => {
     const next = patchSavoriaSession(patch)

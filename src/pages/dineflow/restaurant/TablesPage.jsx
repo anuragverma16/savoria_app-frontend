@@ -71,6 +71,7 @@ export default function TablesPage() {
   const [editingSeats, setEditingSeats] = useState(null)
   const [qrBaseUrl, setQrBaseUrl] = useState('')
   const [qrUsesLocalhost, setQrUsesLocalhost] = useState(false)
+  const [suggestedLanUrl, setSuggestedLanUrl] = useState('')
   const [regeneratingQr, setRegeneratingQr] = useState(false)
   const gridRef = useRef(null)
   const rid = activeRestaurant?._id
@@ -99,6 +100,7 @@ export default function TablesPage() {
       setTables(sortTables(data.tables || []))
       setQrBaseUrl(data.qrBaseUrl || '')
       setQrUsesLocalhost(Boolean(data.qrUsesLocalhost))
+      setSuggestedLanUrl(data.suggestedLanUrl || '')
     } catch {
       toast.error('Failed to load tables')
     } finally {
@@ -291,8 +293,47 @@ export default function TablesPage() {
       )}
 
       {qrUsesLocalhost && (
-        <div className="mb-6 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-sm text-amber-100">
-          <p className="font-semibold">Set CLIENT_URL on the server, then regenerate QR codes.</p>
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl border border-amber-500/40 bg-amber-500/10 text-sm text-amber-50 space-y-3">
+          <p className="font-semibold text-amber-200 text-base">
+            QR codes use localhost — phones cannot open them
+          </p>
+          <p className="text-amber-100/90 leading-relaxed">
+            A phone scanning this QR tries to open <span className="font-mono text-amber-200">localhost</span> on
+            the phone itself, not your computer. Set a public URL on the server, then regenerate QR codes.
+          </p>
+          <ol className="list-decimal list-inside space-y-2 text-amber-100/85 text-xs sm:text-sm">
+            {suggestedLanUrl && (
+              <li>
+                <strong>Same Wi‑Fi (dev):</strong> add to <span className="font-mono">backend/.env</span>
+                <pre className="mt-1 p-2 rounded-lg bg-black/30 font-mono text-[11px] overflow-x-auto">
+{`PUBLIC_APP_URL=${suggestedLanUrl}`}
+                </pre>
+                Open the app on your phone at that URL (not localhost). Restart backend + frontend.
+              </li>
+            )}
+            <li>
+              <strong>Production:</strong> deploy frontend, then set{' '}
+              <span className="font-mono">PUBLIC_APP_URL=https://your-domain.com</span>
+            </li>
+            <li>
+              <strong>Tunnel (quick test):</strong> run <span className="font-mono">ngrok http 3000</span>, set{' '}
+              <span className="font-mono">PUBLIC_APP_URL</span> to the ngrok https URL.
+            </li>
+            <li>
+              Click <strong>Regenerate all QR</strong> above after changing the env variable.
+            </li>
+          </ol>
+          {qrBaseUrl && (
+            <p className="text-[11px] font-mono text-amber-200/70 break-all pt-1 border-t border-amber-500/20">
+              Current QR base: {qrBaseUrl}
+            </p>
+          )}
+        </div>
+      )}
+
+      {!qrUsesLocalhost && qrBaseUrl && (
+        <div className="mb-6 p-3 rounded-xl border border-emerald-500/25 bg-emerald-500/5 text-xs text-emerald-200/90">
+          QR scan links use: <span className="font-mono break-all">{qrBaseUrl}</span>
         </div>
       )}
 

@@ -25,6 +25,11 @@ export function buildOrderPanelPath(segment, restaurantId, tableOrParams) {
   return qs ? `${path}?${qs}` : path
 }
 
+/** After QR scan — open menu in the user order panel for this restaurant + table */
+export function orderMenuAfterScan(restaurantId, table) {
+  return buildOrderPanelPath('menu', restaurantId, table)
+}
+
 /** After QR scan — open full user panel home for this restaurant + table */
 export function orderDashboardAfterScan(restaurantId, table) {
   return buildOrderPanelPath('dashboard', restaurantId, table)

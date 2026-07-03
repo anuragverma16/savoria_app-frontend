@@ -1,8 +1,9 @@
 import { publicAPI } from '../api/dineflow'
 import { initCart } from '../store/slices/cartSlice'
+import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
-import { buildOrderPanelPath } from './orderPanelPaths'
+import { orderMenuAfterScan } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
@@ -12,21 +13,37 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
   }
 
   const rid = String(restaurant._id)
+  const tableToken = table.qrToken || table.qr_token
+  if (!tableToken) {
+    throw new Error('Table QR token missing')
+  }
+
   const session = {
     restaurantId: rid,
     tableId: table._id,
-    tableToken: table.qrToken,
-    table,
+    tableToken,
+    table: { ...table, qrToken: tableToken },
     guestCount: 1,
     qrLinked: true,
     linkedAt: Date.now(),
   }
 
   saveUserTableSession(rid, session)
+  dispatch(setActiveRestaurant({
+    _id: rid,
+    name: restaurant.name,
+    slug: restaurant.slug,
+    settings: restaurant.settings,
+    address: restaurant.address,
+    logo: restaurant.logo,
+    phone: restaurant.phone,
+    email: restaurant.email,
+    gstNumber: restaurant.gstNumber,
+  }))
   dispatch(initCart({
     restaurantId: rid,
     tableToken: session.tableToken,
-    table,
+    table: session.table,
   }))
 
   patchSavoriaSession({
@@ -40,7 +57,7 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
     scanLocked: true,
   })
 
-  return { booked: true, table, restaurant }
+  return { booked: true, table: session.table, restaurant }
 }
 
 /** Validate scan via API and link table */
@@ -125,7 +142,7 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel = true) {
   if (isOrderPanel) {
-    return buildOrderPanelPath('menu', restaurantId, table)
+    return orderMenuAfterScan(restaurantId, table)
   }
   return buildMenuQrPath(restaurantId, table._id)
 }

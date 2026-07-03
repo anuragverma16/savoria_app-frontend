@@ -98,17 +98,17 @@ export default function SavoriaCheckoutPage() {
   }
 
   const handlePayClick = () => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem(RESUME_PAYMENT_KEY, '1')
+      requireAuth(paths.checkout)
+      return
+    }
     if (!customerName.trim()) {
       toast.error('Please enter your name')
       return
     }
     if (!phone.trim()) {
       toast.error('Phone number is required')
-      return
-    }
-    if (!isAuthenticated) {
-      sessionStorage.setItem(RESUME_PAYMENT_KEY, '1')
-      requireAuth(paths.checkout, () => setShowUpiModal(true))
       return
     }
     setShowUpiModal(true)

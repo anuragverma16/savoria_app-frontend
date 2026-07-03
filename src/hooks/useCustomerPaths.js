@@ -14,10 +14,20 @@ export function useCustomerPaths() {
   const isOrderPanel = location.pathname.startsWith('/order') || Boolean(session.qrLinked)
 
   return useMemo(() => {
+    const tableCtx = {
+      tableId: session.tableId,
+      tableNumber: session.tableNumber,
+      tableToken: session.tableToken,
+    }
+    const panelPath = (segment) => buildOrderPanelPath(
+      segment,
+      session.rid,
+      tableCtx,
+    )
     const menuForTable = (rid, tid) => buildOrderPanelPath(
       'menu',
       rid || session.rid,
-      { tableId: tid || session.tableId, tableNumber: session.tableNumber, tableToken: session.tableToken },
+      { ...tableCtx, tableId: tid || session.tableId },
     )
 
     if (isOrderPanel) {
@@ -25,16 +35,16 @@ export function useCustomerPaths() {
         isOrderPanel: true,
         base: '/order',
         menu: menuForTable(session.rid, session.tableId),
-        cart: '/order/cart',
-        checkout: '/order/checkout',
-        orders: '/order/history',
-        activeOrders: '/order/active',
-        orderDetails: (orderId) => `/order/orders/${orderId}`,
-        profile: '/order/settings',
-        dashboard: '/order/dashboard',
-        orderSuccess: (orderId) => `/order/success/${orderId}`,
+        cart: panelPath('cart'),
+        checkout: panelPath('checkout'),
+        orders: panelPath('history'),
+        activeOrders: panelPath('active'),
+        orderDetails: (orderId) => panelPath(`orders/${orderId}`),
+        profile: panelPath('settings'),
+        dashboard: panelPath('dashboard'),
+        orderSuccess: (orderId) => panelPath(`success/${orderId}`),
         menuForTable,
-        tables: '/order/tables',
+        tables: panelPath('tables'),
       }
     }
 
@@ -42,16 +52,16 @@ export function useCustomerPaths() {
       isOrderPanel: false,
       base: '/order',
       menu: menuForTable(session.rid, session.tableId),
-      cart: '/order/cart',
-      checkout: '/order/checkout',
-      orders: '/order/history',
-      activeOrders: '/order/active',
-      orderDetails: (orderId) => `/order/orders/${orderId}`,
-      profile: '/order/settings',
-      dashboard: '/order/dashboard',
-      orderSuccess: (orderId) => `/order/success/${orderId}`,
+      cart: panelPath('cart'),
+      checkout: panelPath('checkout'),
+      orders: panelPath('history'),
+      activeOrders: panelPath('active'),
+      orderDetails: (orderId) => panelPath(`orders/${orderId}`),
+      profile: panelPath('settings'),
+      dashboard: panelPath('dashboard'),
+      orderSuccess: (orderId) => panelPath(`success/${orderId}`),
       menuForTable,
-      tables: '/order/dashboard',
+      tables: panelPath('dashboard'),
     }
   }, [isOrderPanel, session.rid, session.tableId, session.tableNumber, session.tableToken])
 }
