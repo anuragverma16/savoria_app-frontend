@@ -12,7 +12,7 @@ export default function InvalidQrPage() {
         This QR code is not valid. Please scan the QR code placed on your restaurant table.
       </p>
       <Link
-        to="/order/tables?scan=1"
+        to="/order/scan"
         className="px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold text-sm hover:bg-emerald-400"
       >
         Scan table QR

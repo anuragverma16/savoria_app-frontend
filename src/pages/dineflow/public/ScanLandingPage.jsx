@@ -27,7 +27,7 @@ export default function ScanLandingPage() {
       const tableId = parsed?.tableId || searchParams.get('tableId')
 
       if (!restaurantId || !tableId) {
-        navigate('/invalid-qr', { replace: true })
+        navigate('/order/scan', { replace: true })
         return
       }
 

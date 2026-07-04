@@ -1,6 +1,6 @@
 /**
  * QR scan URL format:
- * {origin}/scan?restaurantId={mongoId}&tableId={mongoId}
+ * {origin}/scan?restaurantId={mongoId}&tableId={mongoId}&no={tableNumber}
  */
 
 export const SCAN_PATH = '/scan'

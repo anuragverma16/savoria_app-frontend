@@ -24,11 +24,16 @@ export default function QRMenuRoute() {
           setFailed(true)
           return
         }
-        const next = new URLSearchParams(searchParams)
-        next.set('rid', rid)
+        const tableId = data.table?._id
+        if (!tableId) {
+          setFailed(true)
+          return
+        }
+        const next = new URLSearchParams()
+        next.set('restaurantId', String(rid))
+        next.set('tableId', String(tableId))
         if (data.table?.tableNumber) next.set('no', String(data.table.tableNumber))
-        if (data.restaurant?.slug) next.set('slug', data.restaurant.slug)
-        setTarget(`/order/tables?${next.toString()}`)
+        setTarget(`/scan?${next.toString()}`)
       })
       .catch(() => setFailed(true))
   }, [slug, searchParams])

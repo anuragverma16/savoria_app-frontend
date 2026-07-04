@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import gsap from 'gsap'
 import { FiShoppingBag, FiClock, FiArrowRight, FiMapPin, FiPackage, FiUser } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
-import SavoriaQrScanModal from '../../components/savoria/SavoriaQrScanModal'
 import SavoriaBrandedQrScanCard from '../../components/savoria/SavoriaBrandedQrScanCard'
 
 const ACTIVE_STATUSES = new Set(['pending', 'confirmed', 'preparing', 'ready'])
@@ -15,7 +14,6 @@ export default function SavoriaUserDashboard() {
     restaurant, session, totals, orders, isAuthenticated, userDisplayName, refreshSession, paths,
   } = useSavoriaGuest()
   const { withQuery } = useOrderPanelQuery()
-  const [scanOpen, setScanOpen] = useState(false)
   const heroRef = useRef(null)
   const cardsRef = useRef(null)
 
@@ -58,7 +56,7 @@ export default function SavoriaUserDashboard() {
           <SavoriaBrandedQrScanCard
             restaurantName={restaurant?.name || 'Savoria'}
             hint="Tap to scan your table QR"
-            onClick={() => setScanOpen(true)}
+            onClick={() => navigate('/order/scan')}
           />
         )}
 
@@ -80,7 +78,7 @@ export default function SavoriaUserDashboard() {
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={() => navigate(hasTable ? menuPath : '/scan')}
+            onClick={() => navigate(hasTable ? menuPath : '/order/scan')}
             className="sv-glass rounded-2xl p-4 text-left hover:border-[var(--sv-accent)] transition-colors"
           >
             <FiShoppingBag className="text-[var(--sv-accent)] mb-2" size={22} />
@@ -133,8 +131,6 @@ export default function SavoriaUserDashboard() {
           </button>
         )}
       </div>
-
-      <SavoriaQrScanModal open={scanOpen} onClose={() => setScanOpen(false)} />
     </div>
   )
 }

@@ -4,7 +4,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { motion } from 'framer-motion'
 import { FiLink } from 'react-icons/fi'
 import TableBookingLinksPanel from '../../../components/dineflow/TableBookingLinksPanel'
-import SavoriaQrScanModal from '../../../components/savoria/SavoriaQrScanModal'
 import SavoriaBrandedQrScanCard from '../../../components/savoria/SavoriaBrandedQrScanCard'
 import { publicAPI } from '../../../api/dineflow'
 import { readTableParamsFromSearch } from '../../../utils/tableQueryParams'
@@ -35,7 +34,6 @@ export default function UserTableBookPage() {
   const [tables, setTables] = useState([])
   const [loading, setLoading] = useState(true)
   const [baseUrl, setBaseUrl] = useState('')
-  const [scanOpen, setScanOpen] = useState(() => panelPaths.isOrderPanel && searchParams.get('scan') === '1')
 
   const changeHandled = useRef(false)
   const deepLinkHandled = useRef(false)
@@ -43,8 +41,10 @@ export default function UserTableBookPage() {
   const changingTable = searchParams.get('change') === '1'
 
   useEffect(() => {
-    if (panelPaths.isOrderPanel && searchParams.get('scan') === '1') setScanOpen(true)
-  }, [searchParams, panelPaths.isOrderPanel])
+    if (panelPaths.isOrderPanel && searchParams.get('scan') === '1') {
+      navigate('/order/scan', { replace: true })
+    }
+  }, [searchParams, panelPaths.isOrderPanel, navigate])
 
   useEffect(() => {
     if (!rid || changeHandled.current || searchParams.get('change') !== '1') return
@@ -156,7 +156,7 @@ export default function UserTableBookPage() {
             <SavoriaBrandedQrScanCard
               restaurantName={activeRestaurant?.name || 'Savoria'}
               hint="Tap to scan your table QR"
-              onClick={() => setScanOpen(true)}
+              onClick={() => navigate('/order/scan')}
             />
           </motion.div>
         )}
@@ -187,13 +187,6 @@ export default function UserTableBookPage() {
           />
         )}
       </div>
-
-      {panelPaths.isOrderPanel && (
-        <SavoriaQrScanModal
-          open={scanOpen}
-          onClose={() => setScanOpen(false)}
-        />
-      )}
     </div>
   )
 }

@@ -238,7 +238,7 @@ export function getRedirectAfterLogin(user, membership) {
   const restaurant = membership?.restaurant || user?.restaurant
   const rid = restaurant?._id || restaurant
   if (!rid) return null
-  if (user.role === 'user') return `/restaurant/${rid}/user`
+  if (user.role === 'user') return `/order/dashboard?restaurantId=${rid}`
   if (user.role === 'staff') return `/restaurant/${rid}/staff`
   return `/restaurant/${rid}/admin`
 }

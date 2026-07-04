@@ -10,7 +10,7 @@ export function parseTableQr(scannedText) {
       rid: scan.restaurantId,
       tableId: scan.tableId,
       tableToken: null,
-      tableNumber: null,
+      tableNumber: scan.tableNumber || null,
       slug: null,
     }
   }

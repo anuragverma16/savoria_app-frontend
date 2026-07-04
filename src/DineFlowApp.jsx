@@ -16,10 +16,9 @@ import KitchenDisplay from './pages/dineflow/restaurant/KitchenDisplay'
 import TablesPage from './pages/dineflow/restaurant/TablesPage'
 import OrdersPage from './pages/dineflow/restaurant/OrdersPage'
 import MenuManagementPage from './pages/dineflow/restaurant/MenuManagementPage'
-import UserDashboard from './pages/dineflow/restaurant/UserDashboard'
 import CustomerDashboardRoute from './pages/dineflow/restaurant/CustomerDashboardRoute'
 import UserTableBookPage from './pages/dineflow/restaurant/UserTableBookPage'
-import UserMenuPage from './pages/dineflow/restaurant/UserMenuPage'
+import OrderUserRedirect from './components/OrderUserRedirect'
 import CouponsPage from './pages/dineflow/restaurant/CouponsPage'
 import AnalyticsPage from './pages/dineflow/restaurant/AnalyticsPage'
 import SettingsPage from './pages/dineflow/restaurant/SettingsPage'
@@ -42,6 +41,7 @@ import SavoriaMenuPage from './pages/savoria/SavoriaMenuPage'
 import SavoriaCartPage from './pages/savoria/SavoriaCartPage'
 import SavoriaCheckoutPage from './pages/savoria/SavoriaCheckoutPage'
 import SavoriaOrderSuccessPage from './pages/savoria/SavoriaOrderSuccessPage'
+import SavoriaOrderScanPage from './pages/savoria/SavoriaOrderScanPage'
 import CustomerTableGuard from './components/CustomerTableGuard'
 import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
@@ -211,8 +211,8 @@ export default function DineFlowApp() {
           <Route path="active" element={<SavoriaActiveOrdersPage />} />
           <Route path="history" element={<SavoriaOrderHistoryPage />} />
           <Route path="tables" element={<UserTableBookPage />} />
+          <Route path="scan" element={<SavoriaOrderScanPage />} />
           <Route path="menu" element={<ScannedRestaurantGuard requireTable><SavoriaMenuPage /></ScannedRestaurantGuard>} />
-          <Route path="menu-browse" element={<ScannedRestaurantGuard requireTable><SavoriaMenuPage /></ScannedRestaurantGuard>} />
           <Route path="cart" element={<CustomerTableGuard><SavoriaCartPage /></CustomerTableGuard>} />
           <Route path="checkout" element={<CustomerTableGuard><SavoriaCheckoutPage /></CustomerTableGuard>} />
           <Route path="success/:orderId" element={<SavoriaOrderSuccessPage />} />
@@ -253,9 +253,9 @@ export default function DineFlowApp() {
           <Route path="menu-stock" element={<RoleGate allowed={['staff']}><StaffMenuStockPage /></RoleGate>} />
           <Route path="menu" element={<RoleGate allowed={['admin']}><MenuManagementPage /></RoleGate>} />
           <Route path="user" element={<RoleGate allowed={['user']}><CustomerDashboardRoute /></RoleGate>} />
-          <Route path="user/tables" element={<RoleGate allowed={['user']}><UserTableBookPage /></RoleGate>} />
-          <Route path="user/scan" element={<Navigate to="tables" replace />} />
-          <Route path="user/menu" element={<RoleGate allowed={['user']}><UserMenuPage /></RoleGate>} />
+          <Route path="user/tables" element={<RoleGate allowed={['user']}><OrderUserRedirect segment="tables" /></RoleGate>} />
+          <Route path="user/scan" element={<Navigate to="/order/scan" replace />} />
+          <Route path="user/menu" element={<RoleGate allowed={['user']}><OrderUserRedirect segment="menu" /></RoleGate>} />
           <Route path="coupons" element={<RoleGate allowed={['admin']}><CouponsPage /></RoleGate>} />
           <Route path="staff-team" element={<RoleGate allowed={['admin']}><StaffManagementPage /></RoleGate>} />
           <Route path="analytics" element={<RoleGate allowed={['admin']}><AnalyticsPage /></RoleGate>} />
