@@ -1,27 +1,21 @@
-import { Outlet, Link, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { FiHome, FiLogOut, FiShield } from 'react-icons/fi'
 import { logout } from '../store/slices/authSlice'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
+import { openSignInForRole } from '../utils/authEntry'
 
 export default function PlatformLayout() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
+  const location = useLocation()
   const { user } = useSelector((s) => s.auth)
 
   const handleLogout = () => {
     dispatch(logout())
-    navigate('/', {
-      replace: true,
-      state: {
-        openAuth: true,
-        authRole: 'superadmin',
-        from: { pathname: '/platform' },
-        redirectPath: '/platform',
-      },
-    })
+    navigate(openSignInForRole('superadmin', location), { replace: true })
   }
 
   return (

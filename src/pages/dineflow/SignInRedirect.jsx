@@ -7,23 +7,29 @@ export default function SignInRedirect() {
   const [searchParams] = useSearchParams()
   const role = normalizeLoginRole(searchParams.get('role') || 'user')
   const from = location.state?.from
+  const roleQuery = searchParams.get('role')
+  const authRole = roleQuery === 'superadmin' ? 'superadmin' : role
 
   let redirectPath
   if (from?.pathname) {
     redirectPath = `${from.pathname}${from.search || ''}`
-  } else if (role === 'superadmin' || searchParams.get('role') === 'superadmin') {
+  } else if (authRole === 'superadmin') {
     redirectPath = '/platform'
-  } else if (role === 'user') {
+  } else if (authRole === 'user') {
     redirectPath = '/order/dashboard'
   }
 
+  const homeSearch = authRole && authRole !== 'user'
+    ? `?role=${encodeURIComponent(authRole)}`
+    : ''
+
   return (
     <Navigate
-      to="/"
+      to={{ pathname: '/', search: homeSearch }}
       replace
       state={{
         openAuth: true,
-        authRole: searchParams.get('role') === 'superadmin' ? 'superadmin' : role,
+        authRole,
         from: from || (redirectPath === '/platform' ? { pathname: '/platform' } : undefined),
         redirectPath,
       }}

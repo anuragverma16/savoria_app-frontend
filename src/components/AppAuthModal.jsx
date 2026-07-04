@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useSearchParams } from 'react-router-dom'
 import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
+import { normalizeLoginRole } from '../utils/panelRole'
 import SavoriaAuthGateModal from './savoria/SavoriaAuthGateModal'
 
 /** Global auth popup — mounted once at app root */
 export default function AppAuthModal() {
   const location = useLocation()
+  const [searchParams] = useSearchParams()
   const {
     authGateOpen,
     authGateMode,
@@ -16,17 +18,21 @@ export default function AppAuthModal() {
   } = useSavoriaGuest()
 
   useEffect(() => {
-    if (!location.state?.openAuth) return
+    const roleFromQuery = searchParams.get('role')
+    const shouldOpen = location.state?.openAuth || Boolean(roleFromQuery)
+    if (!shouldOpen) return
 
     const from = location.state?.from
     const fromPath = from?.pathname || ''
-    const authRole = location.state?.authRole || 'user'
+    const authRole = location.state?.authRole
+      || (roleFromQuery === 'superadmin' ? 'superadmin' : normalizeLoginRole(roleFromQuery))
+      || 'user'
 
     let redirectPath = location.state?.redirectPath
     if (!redirectPath) {
       if (fromPath.startsWith('/platform')) redirectPath = '/platform'
       else if (fromPath) redirectPath = `${fromPath}${from.search || ''}`
-      else redirectPath = '/order/dashboard'
+      else if (authRole === 'user') redirectPath = '/order/dashboard'
     }
 
     openAuthModal({
@@ -37,8 +43,12 @@ export default function AppAuthModal() {
 
     const nextState = { ...location.state }
     delete nextState.openAuth
-    window.history.replaceState(nextState, '', location.pathname + location.search + location.hash)
-  }, [location.state, location.pathname, location.search, location.hash, openAuthModal])
+    const cleanSearch = new URLSearchParams(location.search)
+    cleanSearch.delete('role')
+    const qs = cleanSearch.toString()
+    const nextUrl = location.pathname + (qs ? `?${qs}` : '') + (location.hash || '')
+    window.history.replaceState(nextState, '', nextUrl)
+  }, [location.state, location.pathname, location.search, location.hash, searchParams, openAuthModal])
 
   return (
     <SavoriaAuthGateModal

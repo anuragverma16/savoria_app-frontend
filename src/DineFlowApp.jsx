@@ -46,7 +46,7 @@ import CustomerTableGuard from './components/CustomerTableGuard'
 import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
 import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
-import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
+import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, isAccountSuperAdmin, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
 import { resolveAuthGateState } from './utils/authEntry'
 import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
 import GuestOrderPanelGuard from './components/GuestOrderPanelGuard'
@@ -72,7 +72,7 @@ function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) 
       />
     )
   }
-  if (roles && !roles.includes(user.role) && user.platformRole !== 'superadmin') {
+  if (roles && !roles.includes(user.role) && !isAccountSuperAdmin(user, user?.phone)) {
     return <Navigate to="/unauthorized" replace />
   }
   return children

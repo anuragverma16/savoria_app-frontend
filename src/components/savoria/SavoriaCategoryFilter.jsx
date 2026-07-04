@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react'
+import { SAVORIA_CATEGORIES } from '../../data/savoriaMenuData'
 
-export default function SavoriaCategoryFilter({ active, onChange, categories = [] }) {
+export default function SavoriaCategoryFilter({ active, onChange, categories }) {
   const scrollRef = useRef(null)
   const activeRef = useRef(null)
 
@@ -8,7 +9,7 @@ export default function SavoriaCategoryFilter({ active, onChange, categories = [
     activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [active])
 
-  const pills = [{ id: 'all', name: 'All', icon: '✨' }, ...categories]
+  const pills = [{ id: 'all', name: 'All', icon: '✨' }, ...(categories?.length ? categories : SAVORIA_CATEGORIES)]
 
   return (
     <div

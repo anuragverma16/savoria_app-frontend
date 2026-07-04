@@ -7,7 +7,6 @@ import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
 import {
   dashboardPathRequiresAuth,
   getNavbarSettingsPath,
-  getProfileDashboardMeta,
   navigateToProfileDashboard,
 } from '../../utils/panelRole'
 
@@ -26,10 +25,9 @@ export default function NavbarProfileMenu({
   const dispatch = useDispatch()
   const guestAuth = useSavoriaGuestOptional()
   const savoriaAuth = loadSavoriaSession()?.auth
-  const { user, memberships, accessToken } = useSelector((s) => s.auth)
+  const { user, memberships, accessToken, refreshToken } = useSelector((s) => s.auth)
   const phoneHint = user?.phone || guestAuth?.auth?.phone || savoriaAuth?.phone
   const settingsPath = getNavbarSettingsPath(user, memberships, phoneHint)
-  const dashboardMeta = getProfileDashboardMeta(user, memberships)
 
   const close = useCallback(() => {
     setOpen(false)
@@ -69,6 +67,7 @@ export default function NavbarProfileMenu({
       memberships,
       phoneHint,
       accessToken,
+      refreshToken,
       openAuthModal: guestAuth?.openAuthModal,
     })
   }
@@ -88,25 +87,11 @@ export default function NavbarProfileMenu({
     navigate(path)
   }
 
-  const dashboardButton = (
-    <button
-      type="button"
-      className={mobile ? 'lp-nav-mobile-menu-item lp-nav-profile-dashboard-item' : 'lp-nav-profile-menu-item lp-nav-profile-dashboard-item'}
-      onClick={goDashboard}
-    >
-      <FiGrid size={mobile ? 18 : 16} />
-      <span className="lp-nav-profile-dashboard-text">
-        <span className="lp-nav-profile-dashboard-label">{dashboardMeta.label}</span>
-        {dashboardMeta.hint ? (
-          <span className="lp-nav-profile-dashboard-hint">{dashboardMeta.hint}</span>
-        ) : null}
-      </span>
-    </button>
-  )
-
   const menuItems = (
     <>
-      {dashboardButton}
+      <button type="button" className={mobile ? 'lp-nav-mobile-menu-item' : 'lp-nav-profile-menu-item'} onClick={goDashboard}>
+        <FiGrid size={mobile ? 18 : 16} /> Dashboard
+      </button>
       <button type="button" className={mobile ? 'lp-nav-mobile-menu-item' : 'lp-nav-profile-menu-item'} onClick={goSettings}>
         <FiSettings size={mobile ? 18 : 16} /> Settings
       </button>

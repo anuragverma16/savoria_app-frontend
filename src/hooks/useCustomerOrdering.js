@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { publicAPI, restaurantAPI } from '../api/dineflow'
 import {
@@ -20,7 +19,6 @@ import { useCustomerPaths } from './useCustomerPaths'
 
 export function useCustomerOrdering({ session, refreshSession, isAuthenticated } = {}) {
   const dispatch = useDispatch()
-  const [searchParams] = useSearchParams()
   const paths = useCustomerPaths()
   const { activeRestaurant } = useSelector((s) => s.tenant)
   const cartState = useSelector((s) => s.cart)
@@ -103,33 +101,15 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   }), [subtotal, gst, service, discount, total, itemCount])
 
   const loadMenu = useCallback(async () => {
-    const stored = loadSavoriaSession() || {}
-    const tableSession = stored.rid ? loadUserTableSession(stored.rid) : null
-    const effectiveRid = session?.rid
-      || rid
-      || stored.rid
-      || searchParams.get('restaurantId')
-      || searchParams.get('rid')
-    const tableId = session?.tableId
-      || stored.tableId
-      || tableSession?.tableId
-      || searchParams.get('tableId')
-    const qrLinked = Boolean(
-      session?.qrLinked
-      || stored.qrLinked
-      || tableSession?.qrLinked
-      || (effectiveRid && tableId),
-    )
-
-    if (!effectiveRid) return
+    if (!rid) return
     setMenuLoading(true)
     setMenuError(null)
     try {
-      if (qrLinked && tableId) {
-        const { data } = await publicAPI.getScanMenu(effectiveRid, tableId)
+      if (session?.qrLinked && session?.tableId) {
+        const { data } = await publicAPI.getScanMenu(rid, session.tableId)
         const restaurantData = data.restaurant || {}
         dispatch(setActiveRestaurant({
-          _id: restaurantData._id || effectiveRid,
+          _id: restaurantData._id || rid,
           name: restaurantData.name,
           slug: restaurantData.slug,
           settings: restaurantData.settings,
@@ -142,22 +122,12 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
         setMenuItems(data.menuItems || [])
         setSettings(restaurantData.settings || {})
         setRestaurantMeta(restaurantData)
-        patchSavoriaSession({
-          rid: restaurantData._id || effectiveRid,
-          slug: restaurantData.slug,
-          restaurantName: restaurantData.name,
-          tableId: data.table?._id || tableId,
-          tableNumber: data.table?.tableNumber || stored.tableNumber,
-          tableToken: data.table?.qrToken || stored.tableToken,
-          qrLinked: true,
-        })
-        refreshSession?.()
         return
       }
 
-      const slug = session?.slug || stored.slug || activeRestaurant?.slug
+      const slug = session?.slug || activeRestaurant?.slug
       if (!slug) {
-        setMenuError('Scan your table QR to load the restaurant menu.')
+        setMenuError('Restaurant not linked. Scan your table QR.')
         return
       }
       const { data } = await publicAPI.getMenu(slug)
@@ -172,17 +142,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     } finally {
       setMenuLoading(false)
     }
-  }, [
-    rid,
-    session?.rid,
-    session?.qrLinked,
-    session?.tableId,
-    session?.slug,
-    activeRestaurant?.slug,
-    searchParams,
-    dispatch,
-    refreshSession,
-  ])
+  }, [rid, session?.qrLinked, session?.tableId, session?.slug, activeRestaurant?.slug, dispatch])
 
   const refreshOrders = useCallback(async () => {
     const session = loadSavoriaSession() || {}

@@ -80,7 +80,7 @@ export default function SavoriaMenuPage() {
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
-              onClick={() => navigate(withQuery(paths.dashboard))}
+              onClick={() => navigate(paths.orders)}
               className="sv-btn-ghost py-2 px-3"
             >
               <FiArrowLeft size={18} />

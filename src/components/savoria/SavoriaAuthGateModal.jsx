@@ -14,8 +14,11 @@ import { syncGuestOrderSessionAfterAuth } from '../../utils/syncGuestOrderSessio
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
+import WhatsappOtpAuthForm from '../dineflow/WhatsappOtpAuthForm'
 import { navigateAfterPanelAuth } from '../../utils/panelAuthRedirect'
 import { normalizeLoginRole } from '../../utils/panelRole'
+
+const PANEL_ROLE_LABELS = { admin: 'Admin', staff: 'Staff' }
 
 export default function SavoriaAuthGateModal({
   open,
@@ -48,6 +51,7 @@ export default function SavoriaAuthGateModal({
   const isSignup = activeMode === 'signup'
   const panelRole = normalizeLoginRole(loginRole)
   const isPanelLogin = panelRole === 'admin' || panelRole === 'staff'
+  const panelRoleLabel = PANEL_ROLE_LABELS[panelRole] || 'User'
 
   const animateIn = useCallback(() => {
     const tl = gsap.timeline()
@@ -251,11 +255,14 @@ export default function SavoriaAuthGateModal({
               <div className="min-w-0">
                 <BrandLogo className="text-lg text-white leading-none" accentClass="text-emerald-400" />
                 <h2 className="text-base font-bold text-white mt-1">
-                  {isSignup ? 'Sign up' : 'Login'}
+                  {isPanelLogin
+                    ? `${panelRoleLabel} sign in`
+                    : (isSignup ? 'Sign up' : 'Login')}
                 </h2>
               </div>
             </div>
 
+            {!isPanelLogin && (
             <div ref={tabsRef} className="sv-auth-tabs">
               <button
                 ref={loginTabRef}
@@ -275,13 +282,24 @@ export default function SavoriaAuthGateModal({
               </button>
               <div ref={tabIndicatorRef} className="sv-auth-tab-indicator" style={{ width: '50%' }} />
             </div>
+            )}
 
-            <div ref={contentRef} key={activeMode}>
-              <SavoriaAuthPanel
-                mode={activeMode}
-                loginRole={isPanelLogin && !isSignup ? panelRole : undefined}
-                onSuccess={handleAuthSuccess}
-              />
+            <div ref={contentRef} key={isPanelLogin ? `panel-${panelRole}` : activeMode}>
+              {isPanelLogin ? (
+                <div className="sv-auth-box sv-auth-box--user pt-2">
+                  <p className="text-white/60 text-sm mb-4">
+                    Sign in with WhatsApp OTP — enter the 6-digit code sent to your mobile.
+                  </p>
+                  <WhatsappOtpAuthForm
+                    mode="login"
+                    loginRole={panelRole}
+                    onSuccess={handleAuthSuccess}
+                    dispatchCredentials
+                  />
+                </div>
+              ) : (
+                <SavoriaAuthPanel mode={activeMode} onSuccess={handleAuthSuccess} />
+              )}
             </div>
           </div>
         </div>

@@ -1,8 +1,7 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useSavoriaGuestOptional } from '../contexts/SavoriaGuestContext'
-import { getProfileDashboardMeta, navigateToProfileDashboard } from '../utils/panelRole'
-import { resolveOrderDashboardPath } from '../utils/qrCustomerFlow'
+import { getNavbarDashboardPath, navigateToProfileDashboard } from '../utils/panelRole'
 import { loadSavoriaSession } from '../utils/savoriaGuestSession'
 
 /** Unified auth state for marketing site + guest panel (navbar, landing CTAs). */
@@ -10,7 +9,7 @@ export function useAppAuth() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const guestAuth = useSavoriaGuestOptional()
-  const { user, accessToken, memberships } = useSelector((s) => s.auth)
+  const { user, accessToken, memberships, refreshToken } = useSelector((s) => s.auth)
   const savoriaAuth = loadSavoriaSession()?.auth
 
   const isLoggedIn = Boolean(
@@ -25,8 +24,11 @@ export function useAppAuth() {
     || savoriaAuth?.name?.split(/\s+/)[0]
     || 'Guest'
 
-  const dashboardMeta = getProfileDashboardMeta(user, memberships)
-  const dashboardPath = dashboardMeta.path || '/order/dashboard'
+  const dashboardPath = getNavbarDashboardPath(
+    user,
+    memberships,
+    user?.phone || savoriaAuth?.phone,
+  ) || '/order/dashboard'
 
   const goToDashboard = () => {
     navigateToProfileDashboard({
@@ -36,11 +38,12 @@ export function useAppAuth() {
       memberships,
       phoneHint: user?.phone || savoriaAuth?.phone,
       accessToken,
+      refreshToken,
       openAuthModal: guestAuth?.openAuthModal,
     })
   }
 
-  const openLogin = (redirectPath = resolveOrderDashboardPath()) => {
+  const openLogin = (redirectPath = dashboardPath) => {
     if (isLoggedIn) {
       goToDashboard()
       return
@@ -48,7 +51,7 @@ export function useAppAuth() {
     guestAuth?.openAuthModal({ mode: 'login', redirectPath })
   }
 
-  const openSignup = (redirectPath = resolveOrderDashboardPath()) => {
+  const openSignup = (redirectPath = '/order/dashboard') => {
     if (isLoggedIn) {
       goToDashboard()
       return
@@ -60,7 +63,6 @@ export function useAppAuth() {
     isLoggedIn,
     displayName,
     dashboardPath,
-    dashboardMeta,
     goToDashboard,
     openLogin,
     openSignup,

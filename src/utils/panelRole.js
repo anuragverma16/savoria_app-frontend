@@ -1,8 +1,7 @@
 /** Client-facing panel: admin | staff | user | superadmin */
 
 import { setActiveRestaurant, setImpersonating, setViewAsPanel, clearTenant } from '../store/slices/tenantSlice'
-import { isActiveQrCustomerSession, resolveOrderDashboardPath } from './qrCustomerFlow'
-import { loadSavoriaSession } from './savoriaGuestSession'
+import { setCredentials } from '../store/slices/authSlice'
 import { shouldOpenSuperAdminPanel } from './superAdminPhone'
 
 export const RESTAURANT_SUSPENDED_MESSAGE = 'Restaurant suspended by super admin'
@@ -48,6 +47,34 @@ export function isRestaurantSuspended(restaurant) {
 
 export function isSuperAdminUser(user) {
   return user?.platformRole === 'superadmin' || user?.role === 'superadmin'
+}
+
+/** Super admin by JWT fields or registered platform phone */
+export function isAccountSuperAdmin(user, phoneHint) {
+  return isSuperAdminUser(user) || shouldOpenSuperAdminPanel(user, phoneHint)
+}
+
+/** Normalize auth user so guards and routes treat super admins consistently */
+export function normalizeProfileUser(user, phoneHint) {
+  if (!user) return null
+  if (!isAccountSuperAdmin(user, phoneHint)) return user
+  return {
+    ...user,
+    role: 'superadmin',
+    platformRole: 'superadmin',
+  }
+}
+
+/** Profile menu — canonical account role for dashboard routing */
+export function resolveProfileDashboardRole(user, phoneHint) {
+  const profileUser = normalizeProfileUser(user, phoneHint)
+  if (!profileUser) {
+    return shouldOpenSuperAdminPanel(null, phoneHint) ? 'superadmin' : 'guest'
+  }
+  if (isAccountSuperAdmin(profileUser, phoneHint)) return 'superadmin'
+  if (profileUser.role === 'staff') return 'staff'
+  if (profileUser.role === 'admin') return 'admin'
+  return 'user'
 }
 
 export function resolveRestaurantForId({ memberships, user, activeRestaurant, restaurantId }) {
@@ -218,61 +245,44 @@ export function getRedirectAfterLogin(user, membership) {
 
 /** Navbar profile menu — dashboard destination by role */
 export function getNavbarDashboardPath(user, memberships = [], phoneHint) {
-  if (isActiveQrCustomerSession()) {
-    return resolveOrderDashboardPath()
+  if (!user && !phoneHint) return '/order/dashboard'
+
+  const accountRole = resolveProfileDashboardRole(user, phoneHint)
+
+  if (accountRole === 'superadmin') return '/platform'
+  if (accountRole === 'guest') return '/order/dashboard'
+
+  const profileUser = normalizeProfileUser(user, phoneHint) || user
+
+  if (accountRole === 'staff') {
+    const membership = pickMembership(profileUser, memberships, 'staff')
+    const path = getRedirectAfterLogin(profileUser, membership)
+    if (path) return path
+    const rid = activeRestaurantId(normalizeRestaurant(profileUser.restaurant))
+    return rid ? getDefaultPath(rid, 'staff') : null
   }
 
-  // Savoria guest / not signed in with JWT → customer order panel
-  if (!user || !accessTokenRole(user)) {
-    return resolveOrderDashboardPath()
+  if (accountRole === 'admin') {
+    const membership = pickMembership(profileUser, memberships, 'admin')
+    const path = getRedirectAfterLogin(profileUser, membership)
+    if (path) return path
+    const rid = activeRestaurantId(normalizeRestaurant(profileUser.restaurant))
+    return rid ? getDefaultPath(rid, 'admin') : null
   }
 
-  if (isSuperAdminUser(user)) {
-    return '/platform'
-  }
-
-  if (user.role === 'user') {
-    return resolveOrderDashboardPath()
-  }
-
-  if (user.role === 'staff' || user.role === 'admin') {
-    const membership = pickMembership(user, memberships, user.role)
-    return getRedirectAfterLogin(user, membership) || resolveOrderDashboardPath()
-  }
-
-  return resolveOrderDashboardPath()
+  const membership = pickMembership(profileUser, memberships, 'user')
+  return getRedirectAfterLogin(profileUser, membership) || '/order/dashboard'
 }
 
-function accessTokenRole(user) {
-  return user?.role || user?.platformRole
-}
-
-/** Profile menu copy + destination */
-export function getProfileDashboardMeta(user, memberships = []) {
-  const path = getNavbarDashboardPath(user, memberships, user?.phone)
-
-  if (path.startsWith('/order')) {
-    const session = loadSavoriaSession() || {}
-    const atTable = Boolean(session.qrLinked || session.tableId)
-    return {
-      path,
-      label: atTable ? 'Table dashboard' : 'My dashboard',
-      hint: atTable
-        ? `${session.restaurantName || 'Restaurant'} · Table ${session.tableNumber || '—'}`
-        : 'Orders, menu & cart',
-      requiresAuth: false,
-    }
-  }
-  if (path.startsWith('/platform')) {
-    return { path, label: 'Platform', hint: 'Super admin console', requiresAuth: true }
-  }
-  if (path.includes('/staff')) {
-    return { path, label: 'Staff panel', hint: 'Orders & kitchen', requiresAuth: true }
-  }
-  if (path.includes('/admin')) {
-    return { path, label: 'Admin panel', hint: 'Restaurant management', requiresAuth: true }
-  }
-  return { path, label: 'Dashboard', hint: '', requiresAuth: false }
+function loginRoleForDashboardPath(path, user, phoneHint) {
+  const accountRole = resolveProfileDashboardRole(user, phoneHint)
+  if (accountRole !== 'guest') return accountRole === 'superadmin' ? 'superadmin' : accountRole
+  if (path.startsWith('/platform')) return 'superadmin'
+  if (!path.startsWith('/restaurant/')) return 'user'
+  const panel = panelFromPathname(path)
+  if (panel === 'staff') return 'staff'
+  if (panel === 'admin') return 'admin'
+  return 'user'
 }
 
 /** Whether the dashboard route requires a JWT session (not savoria-only guest). */
@@ -288,31 +298,49 @@ export function navigateToProfileDashboard({
   memberships,
   phoneHint,
   accessToken,
+  refreshToken,
   openAuthModal,
 }) {
-  const path = getNavbarDashboardPath(user, memberships, phoneHint) || resolveOrderDashboardPath()
-
-  if (path.startsWith('/order')) {
-    const session = loadSavoriaSession() || {}
-    if (session.rid && dispatch) {
-      dispatch(setActiveRestaurant({
-        _id: session.rid,
-        name: session.restaurantName,
-        slug: session.slug,
-      }))
-    }
-    navigate(path)
-    return
-  }
+  const profileUser = normalizeProfileUser(user, phoneHint)
+  const accountRole = resolveProfileDashboardRole(user, phoneHint)
+  const path = getNavbarDashboardPath(user, memberships, phoneHint) || '/order/dashboard'
 
   if (dashboardPathRequiresAuth(path) && (!accessToken || !user)) {
-    openAuthModal?.({ mode: 'login', redirectPath: path })
+    openAuthModal?.({
+      mode: 'login',
+      redirectPath: path,
+      loginRole: loginRoleForDashboardPath(path, user, phoneHint),
+    })
     return
   }
 
-  if (user && accessToken && path.startsWith('/restaurant/')) {
-    const panelRole = user.role === 'staff' ? 'staff' : user.role === 'admin' ? 'admin' : 'user'
-    hydrateTenantAfterAuth(dispatch, { user, memberships, loginRole: panelRole }, panelRole)
+  if (profileUser && accessToken) {
+    const needsRoleSync = accountRole === 'superadmin'
+      && (user.role !== 'superadmin' || user.platformRole !== 'superadmin')
+
+    if (needsRoleSync) {
+      dispatch(setCredentials({
+        user: profileUser,
+        accessToken,
+        refreshToken,
+        memberships,
+      }))
+    }
+
+    if (accountRole === 'superadmin') {
+      hydrateTenantAfterAuth(
+        dispatch,
+        { user: profileUser, memberships, loginRole: 'superadmin' },
+        'superadmin',
+      )
+    } else if (path.startsWith('/restaurant/')) {
+      const panelRole = panelFromPathname(path) || accountRole
+      hydrateTenantAfterAuth(
+        dispatch,
+        { user: profileUser, memberships, loginRole: panelRole },
+        panelRole,
+      )
+    }
   }
 
   navigate(path)

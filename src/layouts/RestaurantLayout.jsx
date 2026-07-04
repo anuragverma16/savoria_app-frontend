@@ -12,6 +12,7 @@ import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
 import { logout } from '../store/slices/authSlice'
 import { clearTenant, setViewAsPanel } from '../store/slices/tenantSlice'
+import { openSignInForRole } from '../utils/authEntry'
 import { getEffectivePanel, activeRestaurantId, panelFromPathname } from '../utils/panelRole'
 
 const adminNav = [
@@ -72,21 +73,11 @@ export default function RestaurantLayout() {
   const handleLogout = () => {
     dispatch(logout())
     dispatch(clearTenant())
-    const authRole = panel === 'staff'
-      ? 'staff'
-      : panel === 'user'
-        ? 'user'
-        : isSuperAdmin
-          ? 'superadmin'
-          : 'admin'
-    navigate('/', {
-      replace: true,
-      state: {
-        openAuth: true,
-        authRole,
-        from: location,
-      },
-    })
+    let role = 'admin'
+    if (panel === 'user') role = 'user'
+    else if (panel === 'staff') role = 'staff'
+    else if (isSuperAdmin && !impersonating) role = 'superadmin'
+    navigate(openSignInForRole(role, location), { replace: true })
   }
 
   return (

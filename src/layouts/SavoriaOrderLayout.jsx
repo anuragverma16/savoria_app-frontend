@@ -1,4 +1,4 @@
-import { Link, Outlet, NavLink, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { FiGrid, FiShoppingBag, FiHome, FiLogOut, FiClock, FiUser, FiPackage } from 'react-icons/fi'
 import BrandLogo from '../components/dineflow/BrandLogo'
@@ -11,8 +11,6 @@ import { useOrderPanelPaths } from '../utils/orderPanelPaths'
 import { useOrderPanelQuery } from '../hooks/useOrderPanelQuery'
 import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
 import toast from 'react-hot-toast'
-import '../savoria-guest.css'
-import { isActiveQrCustomerSession } from '../utils/qrCustomerFlow'
 
 const NAV = [
   { to: '/order/dashboard', label: 'Home', icon: FiGrid, end: true },
@@ -23,7 +21,6 @@ const NAV = [
 ]
 
 function OrderShell() {
-  const [searchParams] = useSearchParams()
   const { activeRestaurant } = useSelector((s) => s.tenant)
   const { user, accessToken } = useSelector((s) => s.auth)
   const panelPaths = useOrderPanelPaths()
@@ -38,16 +35,9 @@ function OrderShell() {
   const navigate = useNavigate()
   const rid = activeRestaurant?._id || session?.rid
   const isLoggedIn = Boolean(accessToken && user)
-  const qrCustomerFlow = isActiveQrCustomerSession(searchParams)
 
   useTableSessionGuard(rid, {
-    enabled: Boolean(
-      isLoggedIn
-      && rid
-      && session?.qrLinked
-      && !qrCustomerFlow
-      && user?.role === 'user',
-    ),
+    enabled: Boolean(isLoggedIn && rid && session?.qrLinked),
     restaurant: activeRestaurant || { _id: rid, slug: session?.slug, name: session?.restaurantName },
   })
 
@@ -168,7 +158,7 @@ function OrderShell() {
           ))}
         </nav>
 
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sv-page" data-savoria-theme="dark">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <OrderScanBootstrap>
             <Outlet />
           </OrderScanBootstrap>

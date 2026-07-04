@@ -106,7 +106,6 @@ export function SavoriaGuestProvider({ children }) {
 
   const closeAuthModal = useCallback(() => {
     setAuthGateOpen(false)
-    setAuthGateLoginRole('user')
     authSuccessRef.current = null
   }, [])
 
