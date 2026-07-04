@@ -28,7 +28,7 @@ export default function SavoriaUserDashboard() {
   const navigate = useNavigate()
   const {
     restaurant, session, totals, orders, isAuthenticated, userDisplayName,
-    refreshSession, paths, requireAuth,
+    refreshSession, requireAuth,
   } = useSavoriaGuest()
   const { withQuery } = useOrderPanelQuery()
 
@@ -73,11 +73,11 @@ export default function SavoriaUserDashboard() {
     return () => ctx.revert()
   }, [orders.length, totals.itemCount])
 
-  const hasTable = Boolean(session.qrLinked || session.tableToken)
+  const hasTable = Boolean(session.qrLinked || session.tableToken || session.tableId)
   const activeOrders = orders.filter((o) => ACTIVE_STATUSES.has(o.status))
-  const menuPath = withQuery(paths.menu)
-  const cartPath = withQuery(paths.cart)
-  const checkoutPath = withQuery(paths.checkout)
+  const menuPath = withQuery('/order/menu')
+  const cartPath = withQuery('/order/cart')
+  const checkoutPath = withQuery('/order/checkout')
 
   const goMenu = () => navigate(hasTable ? menuPath : '/order/scan')
   const goCheckout = () => {
