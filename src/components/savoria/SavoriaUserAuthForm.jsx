@@ -39,7 +39,7 @@ function PhoneField({ id = 'user-phone', value, onChange, label = 'Mobile number
   )
 }
 
-export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
+export default function SavoriaUserAuthForm({ mode = 'login', loginRole, onSuccess }) {
   const isSignup = mode === 'signup'
   const scannedSession = loadSavoriaSession() || {}
   const scannedRestaurantName = scannedSession.restaurantName || ''
@@ -95,7 +95,11 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
 
     setLoading(true)
     try {
-      const result = await sendWhatsappOtp(phone, isSignup ? 'signup' : 'login')
+      const result = await sendWhatsappOtp(
+        phone,
+        isSignup ? 'signup' : 'login',
+        !isSignup ? loginRole : undefined,
+      )
       setMaskedPhone(result.maskedPhone || maskPhone(phone))
       setResendIn(result.resendIn || DEFAULT_RESEND_SECONDS)
       setOtpSent(true)
@@ -154,6 +158,7 @@ export default function SavoriaUserAuthForm({ mode = 'login', onSuccess }) {
           }
           : { restaurantId: scannedRestaurantId || undefined },
         isSignup ? 'signup' : 'login',
+        !isSignup ? loginRole : undefined,
       )
 
       setStep('success')

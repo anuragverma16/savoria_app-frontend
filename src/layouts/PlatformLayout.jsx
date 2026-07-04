@@ -13,7 +13,15 @@ export default function PlatformLayout() {
 
   const handleLogout = () => {
     dispatch(logout())
-    navigate('/')
+    navigate('/', {
+      replace: true,
+      state: {
+        openAuth: true,
+        authRole: 'superadmin',
+        from: { pathname: '/platform' },
+        redirectPath: '/platform',
+      },
+    })
   }
 
   return (

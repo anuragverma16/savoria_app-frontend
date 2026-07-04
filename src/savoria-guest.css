@@ -354,3 +354,238 @@
     margin: 0 auto;
   }
 }
+
+/* User dashboard — QR scan home with live menu */
+.sv-user-dashboard {
+  min-height: 100%;
+  color: var(--sv-text);
+}
+
+.sv-dash-hero {
+  padding: 1.25rem 1rem 1.5rem;
+  border-bottom: 1px solid var(--sv-border);
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.08), transparent 70%);
+}
+
+@media (min-width: 768px) {
+  .sv-dash-hero {
+    padding: 2rem 1.5rem 2rem;
+  }
+}
+
+.sv-dash-hero__inner {
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.sv-dash-hero__brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.sv-dash-hero__logo {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1rem;
+  object-fit: cover;
+  border: 1px solid var(--sv-border);
+  flex-shrink: 0;
+}
+
+.sv-dash-hero__logo--placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--sv-accent);
+  background: var(--sv-accent-glow);
+}
+
+.sv-dash-hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.sv-dash-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--sv-glass);
+  border: 1px solid var(--sv-border);
+  color: var(--sv-text-muted);
+}
+
+.sv-dash-chip--accent {
+  color: var(--sv-accent);
+  border-color: rgba(212, 175, 55, 0.25);
+}
+
+.sv-dash-content {
+  padding-top: 1.25rem;
+}
+
+.sv-dash-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .sv-dash-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+.sv-dash-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 1rem;
+  text-align: left;
+  background: var(--sv-glass);
+  border: 1px solid var(--sv-border);
+  transition: border-color 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.sv-dash-stat:hover {
+  border-color: var(--sv-accent);
+  transform: translateY(-1px);
+}
+
+.sv-dash-stat__label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sv-text-muted);
+}
+
+.sv-dash-stat__value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--sv-text);
+  margin-top: 0.125rem;
+}
+
+.sv-dash-section-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--sv-text);
+}
+
+.sv-dash-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .sv-dash-menu-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .sv-dash-menu-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.sv-dash-menu-card {
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--sv-surface-solid);
+  border: 1px solid var(--sv-border);
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+
+.sv-dash-menu-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(212, 175, 55, 0.35);
+  box-shadow: var(--sv-shadow);
+}
+
+.sv-dash-menu-card.is-unavailable {
+  opacity: 0.65;
+}
+
+.sv-dash-menu-card__img-wrap {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: var(--sv-bg-2);
+}
+
+.sv-dash-menu-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+
+.sv-dash-menu-card:hover .sv-dash-menu-card__img {
+  transform: scale(1.05);
+}
+
+.sv-dash-menu-card__badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.sv-dash-menu-card__add {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sv-accent);
+  color: #1a1510;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 4px 12px var(--sv-accent-glow);
+}
+
+.sv-dash-menu-card:hover .sv-dash-menu-card__add,
+.sv-dash-menu-card__add:focus-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 767px) {
+  .sv-dash-menu-card__add {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sv-dash-menu-card__body {
+  padding: 0.75rem;
+}

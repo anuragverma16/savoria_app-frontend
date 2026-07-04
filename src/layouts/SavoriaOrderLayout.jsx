@@ -11,6 +11,7 @@ import { useOrderPanelPaths } from '../utils/orderPanelPaths'
 import { useOrderPanelQuery } from '../hooks/useOrderPanelQuery'
 import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
 import toast from 'react-hot-toast'
+import '../savoria-guest.css'
 
 const NAV = [
   { to: '/order/dashboard', label: 'Home', icon: FiGrid, end: true },
@@ -158,7 +159,7 @@ function OrderShell() {
           ))}
         </nav>
 
-        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden sv-page" data-savoria-theme="dark">
           <OrderScanBootstrap>
             <Outlet />
           </OrderScanBootstrap>

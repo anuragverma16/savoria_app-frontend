@@ -23,7 +23,7 @@ export default function SavoriaPublicBootstrap({ children }) {
       const tableId = session.tableId || searchParams.get('tableId')
       const slug = session.slug || searchParams.get('slug')
 
-      if (session.qrLinked && rid && tableId) {
+      if (rid && tableId) {
         try {
           const { data } = await publicAPI.getScanMenu(rid, tableId)
           if (cancelled) return

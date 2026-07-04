@@ -1,9 +1,11 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
+import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 
 export default function SavoriaStickyCartBar() {
   const { totals, paths } = useSavoriaGuest()
+  const { withQuery } = useOrderPanelQuery()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -11,7 +13,7 @@ export default function SavoriaStickyCartBar() {
   if (location.pathname.includes('/cart') || location.pathname.includes('/checkout')) return null
 
   const handleViewCart = () => {
-    navigate(paths.cart)
+    navigate(withQuery(paths.cart))
   }
 
   return (
