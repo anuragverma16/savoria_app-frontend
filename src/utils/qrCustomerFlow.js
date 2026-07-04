@@ -1,5 +1,6 @@
 import { loadSavoriaSession } from './savoriaGuestSession'
-import { hasQrTableSession } from './userTableSession'
+import { hasQrTableSession, loadUserTableSession } from './userTableSession'
+import { buildOrderPanelPath } from './orderPanelPaths'
 
 /**
  * True when the user is in a table QR ordering flow (scan → customer dashboard).
@@ -18,4 +19,23 @@ export function isActiveQrCustomerSession(searchParams) {
   if (rid && hasQrTableSession(rid)) return true
 
   return false
+}
+
+/** Customer order panel home — preserves restaurant + table from QR scan */
+export function resolveOrderDashboardPath() {
+  const session = loadSavoriaSession() || {}
+  const rid = session.rid
+  if (!rid) return '/order/dashboard'
+
+  const tableSession = loadUserTableSession(rid)
+  const tableId = session.tableId || tableSession?.tableId
+  if (!tableId && !session.tableToken && !tableSession?.tableToken) {
+    return '/order/dashboard'
+  }
+
+  return buildOrderPanelPath('dashboard', rid, {
+    tableId,
+    tableToken: session.tableToken || tableSession?.tableToken,
+    tableNumber: session.tableNumber || tableSession?.table?.tableNumber,
+  })
 }

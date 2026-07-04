@@ -30,7 +30,7 @@ export default function SiteNavbar({ variant = 'light' }) {
   const logoRef = useRef(null)
   const location = useLocation()
   const guestAuth = useSavoriaGuestOptional()
-  const { isLoggedIn, displayName: profileName, savoriaAuth, goToDashboard, openLogin, user } = useAppAuth()
+  const { isLoggedIn, displayName: profileName, savoriaAuth, goToDashboard, openLogin, user, dashboardMeta } = useAppAuth()
   const profileFullName = guestAuth?.auth?.name || user?.name || savoriaAuth?.name || profileName
   const profileEmail = guestAuth?.auth?.email || user?.email || savoriaAuth?.email || ''
   const profileInitials = (profileFullName || 'G')
@@ -230,7 +230,7 @@ export default function SiteNavbar({ variant = 'light' }) {
                     }}
                     className="lp-nav-mobile-btn lp-nav-mobile-btn--signin"
                   >
-                    Dashboard
+                    {dashboardMeta?.label || 'Dashboard'}
                     <FiArrowRight size={17} />
                   </button>
                 ) : (

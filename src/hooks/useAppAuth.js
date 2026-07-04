@@ -1,7 +1,8 @@
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useSavoriaGuestOptional } from '../contexts/SavoriaGuestContext'
-import { getNavbarDashboardPath, navigateToProfileDashboard } from '../utils/panelRole'
+import { getProfileDashboardMeta, navigateToProfileDashboard } from '../utils/panelRole'
+import { resolveOrderDashboardPath } from '../utils/qrCustomerFlow'
 import { loadSavoriaSession } from '../utils/savoriaGuestSession'
 
 /** Unified auth state for marketing site + guest panel (navbar, landing CTAs). */
@@ -24,11 +25,8 @@ export function useAppAuth() {
     || savoriaAuth?.name?.split(/\s+/)[0]
     || 'Guest'
 
-  const dashboardPath = getNavbarDashboardPath(
-    user,
-    memberships,
-    user?.phone || savoriaAuth?.phone,
-  ) || '/order/dashboard'
+  const dashboardMeta = getProfileDashboardMeta(user, memberships)
+  const dashboardPath = dashboardMeta.path || '/order/dashboard'
 
   const goToDashboard = () => {
     navigateToProfileDashboard({
@@ -42,7 +40,7 @@ export function useAppAuth() {
     })
   }
 
-  const openLogin = (redirectPath = dashboardPath) => {
+  const openLogin = (redirectPath = resolveOrderDashboardPath()) => {
     if (isLoggedIn) {
       goToDashboard()
       return
@@ -50,7 +48,7 @@ export function useAppAuth() {
     guestAuth?.openAuthModal({ mode: 'login', redirectPath })
   }
 
-  const openSignup = (redirectPath = '/order/dashboard') => {
+  const openSignup = (redirectPath = resolveOrderDashboardPath()) => {
     if (isLoggedIn) {
       goToDashboard()
       return
@@ -62,6 +60,7 @@ export function useAppAuth() {
     isLoggedIn,
     displayName,
     dashboardPath,
+    dashboardMeta,
     goToDashboard,
     openLogin,
     openSignup,
