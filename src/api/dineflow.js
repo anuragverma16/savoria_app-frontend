@@ -1,9 +1,30 @@
 import axios from 'axios'
 
+const PRODUCTION_API_ORIGIN = 'https://savoriabackend.sengarinfotech.com'
+
+function isLocalDevHost(hostname) {
+  return hostname === 'localhost' || hostname === '127.0.0.1'
+}
+
 function resolveApiBaseUrl() {
-  const raw = (import.meta.env.VITE_API_URL || '/api').trim().replace(/\/$/, '')
-  if (raw.endsWith('/api')) return raw
-  return `${raw}/api`
+  const envUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/$/, '')
+
+  if (envUrl && envUrl !== '/api') {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`
+  }
+
+  if (typeof window !== 'undefined') {
+    const { hostname, protocol } = window.location
+    if (!isLocalDevHost(hostname) && protocol.startsWith('http')) {
+      return `${PRODUCTION_API_ORIGIN}/api`
+    }
+  }
+
+  if (import.meta.env.PROD) {
+    return `${PRODUCTION_API_ORIGIN}/api`
+  }
+
+  return '/api'
 }
 
 export const API_BASE_URL = resolveApiBaseUrl()

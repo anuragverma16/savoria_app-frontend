@@ -49,7 +49,7 @@ function OrderShell() {
   }
 
   return (
-    <div className="df-page df-dark-panel df-panel-layout flex user-panel--shell min-h-[100dvh]">
+    <div className="df-page df-dark-panel df-panel-layout flex user-panel--shell min-h-[100dvh]" data-savoria-theme="dark">
       <aside className="hidden lg:flex w-60 h-full border-r border-[var(--df-border)] flex-col shrink-0 overflow-hidden bg-slate-950/90 user-panel--nav">
         <div className="p-4 border-b border-[var(--df-border)] shrink-0">
           <div className="flex items-center gap-2.5 mb-2 text-white">

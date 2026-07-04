@@ -6,6 +6,7 @@ import { store } from './store'
 import DineFlowApp from './DineFlowApp'
 import { initTheme } from './utils/themeInit'
 import './index.css'
+import './savoria-guest.css'
 
 initTheme()
 

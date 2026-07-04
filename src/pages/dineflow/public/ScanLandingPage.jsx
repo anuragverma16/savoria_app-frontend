@@ -7,7 +7,7 @@ import { validateAndLinkScan, menuPathAfterTableLink } from '../../../utils/link
 
 /**
  * QR scan entry — /scan?restaurantId=&tableId=
- * Validates → stores session → redirects to restaurant menu.
+ * Validates → stores session → redirects to user dashboard.
  */
 export default function ScanLandingPage() {
   const [searchParams] = useSearchParams()
@@ -52,6 +52,13 @@ export default function ScanLandingPage() {
         if (cancelled) return
         if (!err.response && !err.code) {
           console.error('Scan link failed (network/CORS):', err.message)
+        }
+        if (err.code === 'NETWORK_ERROR' || err.code === 'INVALID_RESPONSE') {
+          navigate('/invalid-qr', {
+            replace: true,
+            state: { message: err.message || 'Could not connect to server. Try again.' },
+          })
+          return
         }
         if (err.code === 'INVALID_QR') {
           navigate('/invalid-qr', { replace: true })

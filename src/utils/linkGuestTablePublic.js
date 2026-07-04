@@ -3,7 +3,7 @@ import { initCart } from '../store/slices/cartSlice'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
-import { orderMenuAfterScan } from './orderPanelPaths'
+import { orderDashboardAfterScan } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
@@ -62,7 +62,24 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
 
 /** Validate scan via API and link table */
 export async function validateAndLinkScan(dispatch, restaurantId, tableId) {
-  const { data } = await publicAPI.validateScan(restaurantId, tableId)
+  let data
+  try {
+    const res = await publicAPI.validateScan(restaurantId, tableId)
+    data = res?.data
+  } catch (err) {
+    if (!err.response) {
+      const netErr = new Error(err.message || 'Cannot reach server. Check your connection.')
+      netErr.code = 'NETWORK_ERROR'
+      throw netErr
+    }
+    throw err
+  }
+
+  if (!data || typeof data !== 'object') {
+    const err = new Error('Invalid server response. Redeploy frontend with API URL configured.')
+    err.code = 'INVALID_RESPONSE'
+    throw err
+  }
 
   if (!data.success && data.code === 'INVALID_QR') {
     const err = new Error(data.message || 'Invalid QR Code')
@@ -142,7 +159,7 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel = true) {
   if (isOrderPanel) {
-    return orderMenuAfterScan(restaurantId, table)
+    return orderDashboardAfterScan(restaurantId, table)
   }
   return buildMenuQrPath(restaurantId, table._id)
 }
