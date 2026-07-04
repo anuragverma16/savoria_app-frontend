@@ -2,6 +2,39 @@
 
 import { normalizeLoginRole } from './panelRole'
 
+const SKIP_AUTH_KEY = 'savoria_skip_auth'
+
+/** After logout — suppress the next auth modal on home */
+export function markSkipAuthModal() {
+  try {
+    sessionStorage.setItem(SKIP_AUTH_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function isSkipAuthModal() {
+  try {
+    return sessionStorage.getItem(SKIP_AUTH_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function clearSkipAuthModal() {
+  try {
+    sessionStorage.removeItem(SKIP_AUTH_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Log out and land on marketing home — no login popup */
+export function navigateHomeAfterLogout(navigate) {
+  markSkipAuthModal()
+  navigate('/', { replace: true })
+}
+
 export function resolveAuthGateState(pathname = '') {
   if (pathname.startsWith('/platform')) {
     return { path: '/', authRole: 'superadmin', redirectPath: '/platform' }

@@ -10,6 +10,7 @@ import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
 import { useOrderPanelPaths } from '../utils/orderPanelPaths'
 import { useOrderPanelQuery } from '../hooks/useOrderPanelQuery'
 import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
+import { navigateHomeAfterLogout } from '../utils/authEntry'
 import toast from 'react-hot-toast'
 
 const NAV = [
@@ -44,7 +45,7 @@ function OrderShell() {
   const handleLogout = () => {
     logoutGuest()
     toast.success('Signed out')
-    navigate('/')
+    navigateHomeAfterLogout(navigate)
   }
 
   return (

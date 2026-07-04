@@ -47,7 +47,7 @@ import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
 import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
 import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, isAccountSuperAdmin, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
-import { resolveAuthGateState } from './utils/authEntry'
+import { resolveAuthGateState, isSkipAuthModal } from './utils/authEntry'
 import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
 import GuestOrderPanelGuard from './components/GuestOrderPanelGuard'
 import AppAuthModal from './components/AppAuthModal'
@@ -59,6 +59,9 @@ function ProtectedRoute({ children, roles, loginPath, openOtpOnLogin = false }) 
   const target = loginPath ?? gate.path
 
   if (!accessToken || !user) {
+    if (isSkipAuthModal()) {
+      return <Navigate to={target} replace />
+    }
     return (
       <Navigate
         to={target}
@@ -87,6 +90,9 @@ function RestaurantGuard({ children }) {
 
   if (!accessToken || !user) {
     const gate = resolveAuthGateState(location.pathname)
+    if (isSkipAuthModal()) {
+      return <Navigate to={gate.path} replace />
+    }
     return (
       <Navigate
         to={gate.path}

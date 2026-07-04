@@ -13,15 +13,12 @@ export function useAppAuth() {
   const savoriaAuth = loadSavoriaSession()?.auth
 
   const isLoggedIn = Boolean(
-    guestAuth?.isAuthenticated
-    || (accessToken && user)
-    || savoriaAuth?.verified
-    || savoriaAuth?.verifiedAt,
+    (accessToken && user)
+    || guestAuth?.isAuthenticated,
   )
 
   const displayName = guestAuth?.userDisplayName
     || user?.name?.split(/\s+/)[0]
-    || savoriaAuth?.name?.split(/\s+/)[0]
     || 'Guest'
 
   const dashboardPath = getNavbarDashboardPath(

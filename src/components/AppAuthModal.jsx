@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLocation, useSearchParams } from 'react-router-dom'
 import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
+import { clearSkipAuthModal, isSkipAuthModal } from '../utils/authEntry'
 import { normalizeLoginRole } from '../utils/panelRole'
 import SavoriaAuthGateModal from './savoria/SavoriaAuthGateModal'
 
@@ -18,15 +19,31 @@ export default function AppAuthModal() {
   } = useSavoriaGuest()
 
   useEffect(() => {
+    if (isSkipAuthModal()) {
+      clearSkipAuthModal()
+      closeAuthModal()
+      const cleanSearch = new URLSearchParams(location.search)
+      cleanSearch.delete('role')
+      const qs = cleanSearch.toString()
+      const nextUrl = location.pathname + (qs ? `?${qs}` : '') + (location.hash || '')
+      const nextState = { ...location.state }
+      delete nextState.openAuth
+      delete nextState.authRole
+      window.history.replaceState(nextState, '', nextUrl)
+      return
+    }
+
     const roleFromQuery = searchParams.get('role')
     const shouldOpen = location.state?.openAuth || Boolean(roleFromQuery)
     if (!shouldOpen) return
 
     const from = location.state?.from
     const fromPath = from?.pathname || ''
-    const authRole = location.state?.authRole
+    const rawRole = location.state?.authRole
       || (roleFromQuery === 'superadmin' ? 'superadmin' : normalizeLoginRole(roleFromQuery))
       || 'user'
+    // Old login UI (Login / Sign up tabs) — not staff/admin WhatsApp panel form
+    const authRole = rawRole === 'superadmin' ? 'superadmin' : 'user'
 
     let redirectPath = location.state?.redirectPath
     if (!redirectPath) {
@@ -48,7 +65,7 @@ export default function AppAuthModal() {
     const qs = cleanSearch.toString()
     const nextUrl = location.pathname + (qs ? `?${qs}` : '') + (location.hash || '')
     window.history.replaceState(nextState, '', nextUrl)
-  }, [location.state, location.pathname, location.search, location.hash, searchParams, openAuthModal])
+  }, [location.state, location.pathname, location.search, location.hash, searchParams, openAuthModal, closeAuthModal])
 
   return (
     <SavoriaAuthGateModal

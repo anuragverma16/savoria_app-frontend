@@ -276,12 +276,7 @@ export function getNavbarDashboardPath(user, memberships = [], phoneHint) {
 
 function loginRoleForDashboardPath(path, user, phoneHint) {
   const accountRole = resolveProfileDashboardRole(user, phoneHint)
-  if (accountRole !== 'guest') return accountRole === 'superadmin' ? 'superadmin' : accountRole
-  if (path.startsWith('/platform')) return 'superadmin'
-  if (!path.startsWith('/restaurant/')) return 'user'
-  const panel = panelFromPathname(path)
-  if (panel === 'staff') return 'staff'
-  if (panel === 'admin') return 'admin'
+  if (accountRole === 'superadmin') return 'superadmin'
   return 'user'
 }
 

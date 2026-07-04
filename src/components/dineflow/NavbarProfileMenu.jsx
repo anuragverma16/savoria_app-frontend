@@ -4,6 +4,7 @@ import { FiChevronDown, FiGrid, FiLogOut, FiSettings, FiX } from 'react-icons/fi
 import { useDispatch, useSelector } from 'react-redux'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
+import { navigateHomeAfterLogout } from '../../utils/authEntry'
 import {
   dashboardPathRequiresAuth,
   getNavbarSettingsPath,
@@ -55,7 +56,7 @@ export default function NavbarProfileMenu({
   const handleLogout = () => {
     close()
     guestAuth?.logoutGuest()
-    navigate('/')
+    navigateHomeAfterLogout(navigate)
   }
 
   const goDashboard = () => {

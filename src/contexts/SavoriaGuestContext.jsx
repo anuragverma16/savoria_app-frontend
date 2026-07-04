@@ -7,6 +7,7 @@ import {
   loadSavoriaSession,
   patchSavoriaSession,
 } from '../utils/savoriaGuestSession'
+import { markSkipAuthModal } from '../utils/authEntry'
 import { useCustomerOrdering } from '../hooks/useCustomerOrdering'
 
 const SavoriaGuestContext = createContext(null)
@@ -35,11 +36,21 @@ export function SavoriaGuestProvider({ children }) {
 
   useEffect(() => {
     const stored = loadSavoriaSession()
-    if (stored) {
-      setSession(stored)
-      if (stored.auth) setAuth(stored.auth)
+    if (stored) setSession(stored)
+
+    if (accessToken && reduxUser) {
+      if (stored?.auth) setAuth(stored.auth)
+      return
     }
-  }, [location.pathname, location.search])
+
+    const guestAuth = stored?.auth
+    if (!accessToken && (guestAuth?.verified || guestAuth?.verifiedAt)) {
+      setAuth(guestAuth)
+      return
+    }
+
+    setAuth(null)
+  }, [location.pathname, location.search, accessToken, reduxUser])
 
   const persist = useCallback((patch) => {
     const next = patchSavoriaSession(patch)
@@ -106,6 +117,8 @@ export function SavoriaGuestProvider({ children }) {
 
   const closeAuthModal = useCallback(() => {
     setAuthGateOpen(false)
+    setAuthGateLoginRole('user')
+    setAuthGateMode('login')
     authSuccessRef.current = null
   }, [])
 
@@ -137,12 +150,15 @@ export function SavoriaGuestProvider({ children }) {
   }, [])
 
   const logoutGuest = useCallback(() => {
+    markSkipAuthModal()
     setAuth(null)
     patchSavoriaSession({ auth: null })
-    if (accessToken) dispatch(logoutRedux())
+    dispatch(logoutRedux())
     authSuccessRef.current = null
     setAuthGateOpen(false)
-  }, [accessToken, dispatch])
+    setAuthGateLoginRole('user')
+    setAuthGateMode('login')
+  }, [dispatch])
 
   const value = useMemo(() => ({
     session,

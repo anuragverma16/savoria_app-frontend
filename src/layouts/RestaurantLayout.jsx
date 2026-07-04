@@ -10,9 +10,8 @@ import SuperAdminPanelBar from '../components/SuperAdminPanelBar'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
-import { logout } from '../store/slices/authSlice'
 import { clearTenant, setViewAsPanel } from '../store/slices/tenantSlice'
-import { openSignInForRole } from '../utils/authEntry'
+import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
 import { getEffectivePanel, activeRestaurantId, panelFromPathname } from '../utils/panelRole'
 
 const adminNav = [
@@ -48,6 +47,7 @@ export default function RestaurantLayout() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const location = useLocation()
+  const { logoutGuest } = useSavoriaGuest()
   const { restaurantId: routeRestaurantId } = useParams()
   const { user, accessToken } = useSelector((s) => s.auth)
   const { activeRestaurant, impersonating, viewAsPanel } = useSelector((s) => s.tenant)
@@ -71,13 +71,9 @@ export default function RestaurantLayout() {
   }, [location.pathname, isSuperAdmin, impersonating, viewAsPanel, dispatch])
 
   const handleLogout = () => {
-    dispatch(logout())
     dispatch(clearTenant())
-    let role = 'admin'
-    if (panel === 'user') role = 'user'
-    else if (panel === 'staff') role = 'staff'
-    else if (isSuperAdmin && !impersonating) role = 'superadmin'
-    navigate(openSignInForRole(role, location), { replace: true })
+    logoutGuest()
+    navigate('/', { replace: true })
   }
 
   return (
