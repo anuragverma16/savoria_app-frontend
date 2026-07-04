@@ -2,6 +2,7 @@
 
 import { setActiveRestaurant, setImpersonating, setViewAsPanel, clearTenant } from '../store/slices/tenantSlice'
 import { shouldOpenSuperAdminPanel } from './superAdminPhone'
+import { isActiveQrCustomerSession } from './qrCustomerFlow'
 
 export const RESTAURANT_SUSPENDED_MESSAGE = 'Restaurant suspended by super admin'
 
@@ -216,6 +217,7 @@ export function getRedirectAfterLogin(user, membership) {
 
 /** Navbar profile menu — dashboard destination by role */
 export function getNavbarDashboardPath(user, memberships = [], phoneHint) {
+  if (isActiveQrCustomerSession()) return '/order/dashboard'
   if (shouldOpenSuperAdminPanel(user, phoneHint)) return '/platform'
   if (!user) return '/order/dashboard'
 

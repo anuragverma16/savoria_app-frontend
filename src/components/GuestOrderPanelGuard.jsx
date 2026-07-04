@@ -1,14 +1,23 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
   getRedirectAfterLogin,
   isSuperAdminUser,
   pickMembership,
 } from '../utils/panelRole'
+import { isActiveQrCustomerSession } from '../utils/qrCustomerFlow'
 
-/** Guest QR order panel — customers only; staff/admin go to their restaurant panel */
+/**
+ * Guest QR order panel — customers ordering at a table.
+ * QR scan always opens this panel (menu + dashboard), even if staff/super-admin is logged in.
+ */
 export default function GuestOrderPanelGuard({ children }) {
+  const [searchParams] = useSearchParams()
   const { user, accessToken, memberships } = useSelector((s) => s.auth)
+
+  if (isActiveQrCustomerSession(searchParams)) {
+    return children
+  }
 
   if (!accessToken || !user) return children
 
