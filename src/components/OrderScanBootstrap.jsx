@@ -1,15 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { validateAndLinkScan } from '../utils/linkGuestTablePublic'
 import { loadSavoriaSession } from '../utils/savoriaGuestSession'
+import { buildOrderQueryParams, resolveTableNumber } from '../utils/orderPanelPaths'
+
+function buildSyncedOrderPath(location, restaurantId, tableMeta) {
+  const qs = buildOrderQueryParams(restaurantId, tableMeta).toString()
+  return `${location.pathname}?${qs}`
+}
+
+function urlNeedsTableNumber(searchParams, tableNumber) {
+  if (!tableNumber) return false
+  const current = searchParams.get('no') || searchParams.get('tableNumber')
+  return String(current) !== String(tableNumber)
+}
 
 /**
  * When /order/* has restaurantId + tableId query params, validate QR and link session
- * before rendering the user panel.
+ * before rendering the user panel. Keeps table number in the URL (?no=).
  */
 export default function OrderScanBootstrap({ children }) {
   const [searchParams] = useSearchParams()
+  const location = useLocation()
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [ready, setReady] = useState(false)
@@ -27,11 +40,25 @@ export default function OrderScanBootstrap({ children }) {
       }
 
       const session = loadSavoriaSession()
+      const urlTableNo = searchParams.get('no') || searchParams.get('tableNumber')
+
       if (
         session?.qrLinked
         && String(session.rid) === String(restaurantId)
         && String(session.tableId) === String(tableId)
       ) {
+        const tableNumber = resolveTableNumber(
+          { tableNumber: urlTableNo },
+          session.tableNumber || session.table?.tableNumber,
+        )
+        if (urlNeedsTableNumber(searchParams, tableNumber)) {
+          navigate(buildSyncedOrderPath(location, restaurantId, {
+            tableId,
+            tableToken: session.tableToken,
+            tableNumber,
+          }), { replace: true })
+          return
+        }
         setReady(true)
         return
       }
@@ -48,6 +75,17 @@ export default function OrderScanBootstrap({ children }) {
           })
           return
         }
+
+        const tableNumber = resolveTableNumber(result.table, urlTableNo)
+        if (urlNeedsTableNumber(searchParams, tableNumber)) {
+          navigate(buildSyncedOrderPath(location, restaurantId, {
+            ...result.table,
+            tableId: result.table?._id || tableId,
+            tableNumber,
+          }), { replace: true })
+          return
+        }
+
         setReady(true)
       } catch (err) {
         if (cancelled) return
@@ -65,7 +103,7 @@ export default function OrderScanBootstrap({ children }) {
 
     run()
     return () => { cancelled = true }
-  }, [searchParams, dispatch, navigate])
+  }, [searchParams, location.pathname, location.search, dispatch, navigate])
 
   if (!ready) {
     return (

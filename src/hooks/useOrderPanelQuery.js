@@ -12,17 +12,21 @@ export function useOrderPanelQuery() {
     || searchParams.get('rid')
     || session.rid
   const tableId = searchParams.get('tableId') || session.tableId
+  const tableNumber = searchParams.get('no')
+    || searchParams.get('tableNumber')
+    || session.tableNumber
+    || session.table?.tableNumber
 
   const queryString = useMemo(() => {
     if (restaurantId && tableId) {
       return buildOrderQueryParams(restaurantId, {
         tableId,
         tableToken: session.tableToken,
-        tableNumber: session.tableNumber,
+        tableNumber,
       }).toString()
     }
     return searchParams.toString()
-  }, [restaurantId, tableId, session.tableToken, session.tableNumber, searchParams])
+  }, [restaurantId, tableId, tableNumber, session.tableToken, searchParams])
 
   const withQuery = useCallback((path) => {
     if (!queryString) return path
@@ -31,5 +35,5 @@ export function useOrderPanelQuery() {
     return `${base}?${queryString}`
   }, [queryString])
 
-  return { restaurantId, tableId, queryString, withQuery }
+  return { restaurantId, tableId, tableNumber, queryString, withQuery }
 }

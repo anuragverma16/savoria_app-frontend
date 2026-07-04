@@ -31,12 +31,21 @@ export function buildTableBookingParams({
 
 /** Full absolute URL — encode in QR codes (admin uses server qrTargetUrl) */
 export function buildTableBookingUrl(restaurantId, table, baseUrl) {
-  return buildTableScanUrl(restaurantId, table?._id || table?.tableId, baseUrl)
+  return buildTableScanUrl(
+    restaurantId,
+    table?._id || table?.tableId,
+    baseUrl,
+    table?.tableNumber,
+  )
 }
 
 /** Relative path for in-app navigation */
 export function buildTableBookingPath(restaurantId, table) {
-  return buildTableScanPath(restaurantId, table?._id || table?.tableId)
+  return buildTableScanPath(
+    restaurantId,
+    table?._id || table?.tableId,
+    table?.tableNumber,
+  )
 }
 
 /** After opening book link — menu auto-links table */

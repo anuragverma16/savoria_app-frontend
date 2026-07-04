@@ -141,20 +141,18 @@ function OrderShell() {
           </div>
         </header>
 
-        <nav className="user-panel-mobile-nav lg:hidden shrink-0 flex border-b border-white/10 bg-slate-950/80">
+        <nav className="panel-mobile-nav user-panel-mobile-nav lg:hidden shrink-0 flex border-b border-white/10 bg-slate-950/80">
           {NAV.map((item) => (
             <NavLink
               key={item.to}
               to={withQuery(item.to)}
               end={item.end}
               className={({ isActive }) =>
-                `flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-semibold ${
-                  isActive ? 'text-emerald-400' : 'text-white/45'
-                }`
+                `panel-mobile-nav-item ${isActive ? 'is-active text-emerald-400' : ''}`
               }
             >
               <item.icon size={18} />
-              {item.label}
+              <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>

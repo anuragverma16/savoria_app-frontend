@@ -12,18 +12,24 @@ export function getAppOrigin() {
   return ''
 }
 
-export function buildTableScanUrl(restaurantId, tableId, baseUrl) {
+export function buildTableScanUrl(restaurantId, tableId, baseUrl, tableNumber) {
   const origin = (baseUrl || getAppOrigin() || 'http://localhost:3000').replace(/\/$/, '')
   const params = new URLSearchParams()
   params.set('restaurantId', String(restaurantId))
   params.set('tableId', String(tableId))
+  if (tableNumber != null && tableNumber !== '') {
+    params.set('no', String(tableNumber))
+  }
   return `${origin}${SCAN_PATH}?${params.toString()}`
 }
 
-export function buildTableScanPath(restaurantId, tableId) {
+export function buildTableScanPath(restaurantId, tableId, tableNumber) {
   const params = new URLSearchParams()
   params.set('restaurantId', String(restaurantId))
   params.set('tableId', String(tableId))
+  if (tableNumber != null && tableNumber !== '') {
+    params.set('no', String(tableNumber))
+  }
   return `${SCAN_PATH}?${params.toString()}`
 }
 
@@ -42,11 +48,13 @@ export function parseScanLink(input) {
       || url.searchParams.get('rid')
       || url.pathname.match(/\/restaurant\/([^/]+)\//i)?.[1]
     const tableId = url.searchParams.get('tableId')
+    const tableNumber = url.searchParams.get('no') || url.searchParams.get('tableNumber')
 
     if (isScanPath || (restaurantId && tableId)) {
       return {
         restaurantId: restaurantId ? decodeURIComponent(restaurantId) : null,
         tableId: tableId ? decodeURIComponent(tableId) : null,
+        tableNumber: tableNumber ? decodeURIComponent(tableNumber) : null,
       }
     }
   } catch {

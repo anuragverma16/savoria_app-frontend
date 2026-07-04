@@ -336,7 +336,7 @@ export default function SuperAdminDashboard() {
     <div className="pb-12">
       <div className="mb-8">
           <p className="df-text-accent text-xs font-semibold uppercase tracking-widest mb-1">Super Admin</p>
-          <h1 className="text-3xl font-bold text-white">My Restaurants</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">My Restaurants</h1>
         </div>
 
       {overview && (
@@ -350,7 +350,8 @@ export default function SuperAdminDashboard() {
         </div>
       )}
 
-      <ToggleGroup className="mb-8">
+      <div className="df-tabs-scroll mb-8 -mx-1 px-1">
+      <ToggleGroup className="flex-nowrap min-w-max">
         {TABS.map((t) => (
           <ToggleButton
             key={t.id}
@@ -358,7 +359,7 @@ export default function SuperAdminDashboard() {
             onClick={() => setTab(t.id)}
             color={t.color}
             variant="dark"
-            className="flex items-center gap-2 px-5 py-2.5 text-sm"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2.5 text-xs sm:text-sm whitespace-nowrap"
           >
             <t.icon size={15} /> {t.label}
             {t.id === 'messages' && newContactCount > 0 && (
@@ -369,6 +370,7 @@ export default function SuperAdminDashboard() {
           </ToggleButton>
         ))}
       </ToggleGroup>
+      </div>
 
       <AnimatePresence mode="wait">
         {tab === 'analytics' && (

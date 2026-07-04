@@ -274,6 +274,12 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     if (tableSession?.tableId || session?.tableId) {
       fd.append('tableId', tableSession?.tableId || session.tableId)
     }
+    const tableNumber = tableSession?.table?.tableNumber
+      || session?.tableNumber
+      || table?.tableNumber
+    if (tableNumber) {
+      fd.append('tableNumber', String(tableNumber))
+    }
     fd.append('paymentTxnId', paymentTxnId)
     fd.append('paymentProof', paymentProof)
     fd.append('amount', String(amount ?? total))
@@ -290,7 +296,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     setLastPlacedOrderId(mapped?.id || mapped?.orderId)
     await refreshOrders()
     return mapped
-  }, [rid, items, tableToken, session?.tableId, total, appliedCoupon, dispatch, refreshOrders])
+  }, [rid, items, tableToken, table, session?.tableId, session?.tableNumber, total, appliedCoupon, dispatch, refreshOrders])
 
   const verifyUpiPayment = useCallback(async ({ paymentTxnId, paymentProof, amount }) => {
     const fd = new FormData()

@@ -43,6 +43,17 @@ const userNav = [
 const superAdminCustomerNav = [
   { to: 'user', label: 'Customers', icon: FiUsers },
 ]
+
+function navLinkClass(isActive) {
+  return `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
+    isActive ? 'df-nav-active font-medium' : 'text-white/50 hover:text-white hover:bg-white/5'
+  }`
+}
+
+function mobileNavLinkClass(isActive) {
+  return `panel-mobile-nav-item ${isActive ? 'is-active' : ''}`
+}
+
 export default function RestaurantLayout() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
@@ -76,11 +87,13 @@ export default function RestaurantLayout() {
     navigate('/', { replace: true })
   }
 
+  const asideClass = panel === 'user'
+    ? 'bg-slate-950/90 user-panel--nav'
+    : 'bg-black/50'
+
   return (
-    <div className={`df-page df-dark-panel df-panel-layout flex ${panel === 'user' ? 'user-panel--shell' : ''}`}>
-      <aside className={`w-60 h-full border-r border-[var(--df-border)] flex flex-col shrink-0 overflow-hidden ${
-        panel === 'user' ? 'bg-slate-950/90 user-panel--nav' : 'bg-black/50'
-      }`}>
+    <div className={`df-page df-dark-panel df-panel-layout flex min-h-[100dvh] ${panel === 'user' ? 'user-panel--shell' : ''}`}>
+      <aside className={`hidden lg:flex w-60 h-full border-r border-[var(--df-border)] flex-col shrink-0 overflow-hidden ${asideClass}`}>
         <div className="p-4 border-b border-[var(--df-border)] shrink-0">
           <div className="flex items-center gap-2.5 mb-2 text-white">
             <BrandMark size="sm" />
@@ -99,13 +112,10 @@ export default function RestaurantLayout() {
               key={item.to}
               to={`${base}/${item.to}`}
               end={item.to === 'user' || item.to === 'staff' || item.to === 'admin'}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm transition-all ${
-                  isActive ? 'df-nav-active font-medium' : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`
-              }
+              className={({ isActive }) => navLinkClass(isActive)}
             >
-              <item.icon size={16} /> {item.label}
+              <item.icon size={16} />
+              {item.label}
             </NavLink>
           ))}
         </nav>
@@ -116,29 +126,84 @@ export default function RestaurantLayout() {
               to="/"
               className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/5"
             >
-              <FiHome size={16} /> Back to home
+              <FiHome size={16} />
+              Back to home
             </Link>
           )}
           {isSuperAdmin && (
             <NavLink to="/platform" className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm df-text-accent hover:bg-white/5">
-              <FiHome size={16} /> Platform
+              <FiHome size={16} />
+              Platform
             </NavLink>
           )}
           {(panel !== 'user' || (accessToken && user)) && (
             <button type="button" onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-red-400 hover:bg-red-500/10">
-              <FiLogOut size={16} /> Logout
+              <FiLogOut size={16} />
+              Logout
             </button>
           )}
         </div>
       </aside>
-      <main className="flex-1 min-h-0 flex flex-col min-w-0 overflow-hidden">
+
+      <div className="flex-1 min-h-0 flex flex-col overflow-hidden min-w-0">
+        <header className="df-panel-mobile-header lg:hidden shrink-0 flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10 bg-slate-950/90 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <BrandMark size="sm" />
+            <div className="min-w-0">
+              <span className="text-sm font-semibold text-white truncate block max-w-[180px]">
+                {activeRestaurant?.name || 'Restaurant'}
+              </span>
+              <span className="text-[11px] text-white/55 truncate block capitalize">{panel} panel</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {isSuperAdmin && (
+              <Link
+                to="/platform"
+                className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center text-orange-300"
+                aria-label="Platform"
+              >
+                <FiGrid size={17} />
+              </Link>
+            )}
+            {(panel !== 'user' || (accessToken && user)) && (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400"
+                aria-label="Logout"
+              >
+                <FiLogOut size={17} />
+              </button>
+            )}
+            <ThemeToggle />
+          </div>
+        </header>
+
+        <nav className="panel-mobile-nav panel-mobile-nav--scroll lg:hidden shrink-0 flex border-b border-white/10 bg-slate-950/80">
+          {NAV.map((item) => (
+            <NavLink
+              key={item.to}
+              to={`${base}/${item.to}`}
+              end={item.to === 'user' || item.to === 'staff' || item.to === 'admin'}
+              className={({ isActive }) => mobileNavLinkClass(isActive)}
+            >
+              <item.icon size={18} />
+              <span>{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
         <div className="shrink-0">
           <SuperAdminPanelBar />
         </div>
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-          <Outlet />
-        </div>
-      </main>
+
+        <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+          <div className="df-panel-main">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }

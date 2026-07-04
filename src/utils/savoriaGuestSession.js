@@ -26,10 +26,10 @@ export function clearSavoriaSession() {
 
 export function linkTableFromScan(parsed = {}) {
   return patchSavoriaSession({
-    rid: parsed.rid || 'demo',
+    rid: parsed.rid || parsed.restaurantId,
     tableToken: parsed.tableToken || parsed.table,
     tableId: parsed.tableId,
-    tableNumber: parsed.tableNumber || parsed.no || '12',
+    tableNumber: parsed.tableNumber || parsed.no || null,
     slug: parsed.slug,
     qrLinked: true,
   })

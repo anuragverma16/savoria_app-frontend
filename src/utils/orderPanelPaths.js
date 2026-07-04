@@ -3,19 +3,35 @@ import { useLocation } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { buildTableBookingParams } from './tableBookingLink'
 
+export function resolveTableNumber(tableOrParams = {}, fallback = null) {
+  const n = tableOrParams?.tableNumber
+    ?? tableOrParams?.no
+    ?? tableOrParams?.table?.tableNumber
+    ?? fallback
+  return n != null && n !== '' ? String(n) : null
+}
+
 /** Query string for QR-scoped order panel URLs */
 export function buildOrderQueryParams(restaurantId, tableOrParams = {}) {
   const p = tableOrParams instanceof URLSearchParams
     ? new URLSearchParams(tableOrParams)
     : buildTableBookingParams({
       restaurantId,
-      tableToken: tableOrParams?.tableToken || tableOrParams?.qrToken || tableOrParams?.table,
+      tableToken: tableOrParams?.tableToken || tableOrParams?.qrToken,
       tableId: tableOrParams?._id || tableOrParams?.tableId,
-      tableNumber: tableOrParams?.tableNumber || tableOrParams?.no,
+      tableNumber: resolveTableNumber(tableOrParams),
     })
   if (restaurantId) p.set('restaurantId', String(restaurantId))
   const tableId = tableOrParams?._id || tableOrParams?.tableId
   if (tableId) p.set('tableId', String(tableId))
+  const tableNumber = resolveTableNumber(tableOrParams instanceof URLSearchParams ? {
+    no: tableOrParams.get('no'),
+    tableNumber: tableOrParams.get('tableNumber'),
+  } : tableOrParams)
+  if (tableNumber) {
+    p.set('no', tableNumber)
+    p.set('tableNumber', tableNumber)
+  }
   return p
 }
 
