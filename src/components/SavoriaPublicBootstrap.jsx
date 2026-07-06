@@ -1,29 +1,53 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useDispatch } from 'react-redux'
 import { publicAPI } from '../api/dineflow'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { loadSavoriaSession, patchSavoriaSession } from '../utils/savoriaGuestSession'
+import { hasScanParams } from '../utils/scanLink'
+
+function scanScopeKey(rid, tableId) {
+  if (!rid || !tableId) return null
+  return `${rid}:${tableId}`
+}
+
+function readUrlScanIds(searchParams) {
+  return {
+    rid: searchParams.get('restaurantId') || searchParams.get('rid'),
+    tableId: searchParams.get('tableId'),
+  }
+}
 
 export default function SavoriaPublicBootstrap({ children }) {
   const dispatch = useDispatch()
   const [searchParams] = useSearchParams()
-  const [ready, setReady] = useState(false)
+  const bootstrappedRef = useRef(null)
+  const [ready, setReady] = useState(() => {
+    const session = loadSavoriaSession() || {}
+    return Boolean(session.qrLinked || session.slug || hasScanParams(searchParams))
+  })
   const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
 
     async function bootstrap() {
-      setReady(false)
+      const session = loadSavoriaSession() || {}
+      const { rid: urlRid, tableId: urlTableId } = readUrlScanIds(searchParams)
+      const rid = urlRid || session.rid
+      const tableId = urlTableId || session.tableId
+      const slug = session.slug || searchParams.get('slug')
+      const urlHasScan = Boolean(urlRid && urlTableId)
+      const scopeKey = rid && tableId ? scanScopeKey(rid, tableId) : null
+
+      if (scopeKey && bootstrappedRef.current === scopeKey) {
+        setReady(true)
+        return
+      }
+
       setError(null)
 
-      const session = loadSavoriaSession() || {}
-      const rid = session.rid || searchParams.get('restaurantId') || searchParams.get('rid')
-      const tableId = session.tableId || searchParams.get('tableId')
-      const slug = session.slug || searchParams.get('slug')
-
-      if (session.qrLinked && rid && tableId) {
+      if (urlHasScan || (session.qrLinked && rid && tableId)) {
         try {
           const { data } = await publicAPI.getScanMenu(rid, tableId)
           if (cancelled) return
@@ -44,13 +68,16 @@ export default function SavoriaPublicBootstrap({ children }) {
             slug: restaurant.slug,
             restaurantName: restaurant.name,
             tableId: data.table?._id || tableId,
-            tableNumber: data.table?.tableNumber || session.tableNumber,
+            tableNumber: data.table?.tableNumber ?? session.tableNumber,
             tableToken: data.table?.qrToken || session.tableToken,
-            scanLocked: true,
-            qrLinked: true,
           })
-        } catch {
-          if (!cancelled) setError('Could not load your table session. Scan your table QR again.')
+          bootstrappedRef.current = scanScopeKey(restaurant._id, data.table?._id || tableId)
+        } catch (err) {
+          if (!cancelled) {
+            const msg = err.response?.data?.message
+              || 'Could not load your table menu. Check the link or scan again.'
+            setError(msg)
+          }
         }
         if (!cancelled) setReady(true)
         return
@@ -61,8 +88,10 @@ export default function SavoriaPublicBootstrap({ children }) {
         return
       }
 
+      setReady(false)
       try {
         const { data } = await publicAPI.getMenu(slug)
+        if (cancelled) return
         const restaurant = {
           _id: rid || data.restaurant?._id,
           name: data.restaurant?.name,
@@ -77,8 +106,8 @@ export default function SavoriaPublicBootstrap({ children }) {
 
         if (session.scanLocked && session.rid && restaurant._id
           && String(session.rid) !== String(restaurant._id)) {
-          if (!cancelled) setError('Restaurant mismatch. Scan your table QR again.')
-          if (!cancelled) setReady(true)
+          setError('Restaurant mismatch. Scan your table QR again.')
+          setReady(true)
           return
         }
 
@@ -89,6 +118,7 @@ export default function SavoriaPublicBootstrap({ children }) {
             slug: restaurant.slug,
             restaurantName: restaurant.name,
           })
+          if (rid) bootstrappedRef.current = `slug:${restaurant.slug || slug}`
         }
       } catch {
         if (!cancelled) setError('Could not load restaurant. Scan your table QR to try again.')
@@ -103,18 +133,19 @@ export default function SavoriaPublicBootstrap({ children }) {
 
   if (!ready) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-white/40 text-sm gap-2">
+      <div className="min-h-[100dvh] flex flex-col items-center justify-center text-white/60 text-sm gap-2 bg-[#0a0a0a]">
         <div className="w-8 h-8 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
-        Loading restaurant…
+        Opening menu…
       </div>
     )
   }
 
   if (error) {
     const session = loadSavoriaSession()
-    if (!session?.slug && !session?.qrLinked) {
+    const { rid: urlRid, tableId: urlTableId } = readUrlScanIds(searchParams)
+    if (!session?.slug && !session?.qrLinked && !(urlRid && urlTableId)) {
       return (
-        <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="min-h-[100dvh] flex flex-col items-center justify-center p-6 text-center bg-[#0a0a0a]">
           <p className="text-amber-300/90 text-sm mb-2">{error}</p>
           <p className="text-white/40 text-xs max-w-sm">Scan the QR on your table to connect.</p>
         </div>

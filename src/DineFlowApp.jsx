@@ -25,6 +25,7 @@ import SettingsPage from './pages/dineflow/restaurant/SettingsPage'
 import StaffManagementPage from './pages/dineflow/restaurant/StaffManagementPage'
 
 import QRMenuRoute from './pages/dineflow/public/QRMenuRoute'
+import TableSlugQrRoute from './pages/dineflow/public/TableSlugQrRoute'
 import TableQrLanding from './pages/dineflow/public/TableQrLanding'
 import ScanLandingPage from './pages/dineflow/public/ScanLandingPage'
 import InvalidQrPage from './pages/dineflow/public/InvalidQrPage'
@@ -200,6 +201,7 @@ export default function DineFlowApp() {
         <Route path="/scan" element={<ScanLandingPage />} />
         <Route path="/invalid-qr" element={<InvalidQrPage />} />
         <Route path="/table-not-found" element={<TableNotFoundPage />} />
+        <Route path="/r/:slug/t/:tableNo" element={<TableSlugQrRoute />} />
         <Route path="/r/:slug/order" element={<QRMenuRoute />} />
 
         <Route path="/order" element={<GuestOrderPanelGuard><SavoriaOrderLayout /></GuestOrderPanelGuard>}>

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSavoriaGuestOptional } from '../contexts/SavoriaGuestContext'
 import { getNavbarDashboardPath, navigateToProfileDashboard } from '../utils/panelRole'
 import { loadSavoriaSession } from '../utils/savoriaGuestSession'
+import { resolveCustomerDisplayName } from '../utils/customerDisplayName'
 
 /** Unified auth state for marketing site + guest panel (navbar, landing CTAs). */
 export function useAppAuth() {
@@ -17,9 +18,12 @@ export function useAppAuth() {
     || guestAuth?.isAuthenticated,
   )
 
-  const displayName = guestAuth?.userDisplayName
-    || user?.name?.split(/\s+/)[0]
-    || 'Guest'
+  const displayName = resolveCustomerDisplayName(
+    guestAuth?.userDisplayName,
+    guestAuth?.auth?.name,
+    savoriaAuth?.name,
+    user?.name,
+  ) || (isLoggedIn ? 'Account' : 'Guest')
 
   const dashboardPath = getNavbarDashboardPath(
     user,

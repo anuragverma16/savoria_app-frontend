@@ -297,7 +297,7 @@ export default function SuperAdminDashboard() {
       const updated = list.find((r) => String(r._id) === String(createdRestaurantId))
       if (updated) {
         grantProvisionPreview(updated._id, previewPanel)
-        enterRestaurant(updated, previewPanel)
+        toast.success(`Open ${updated.name} from Admin / Staff / Customer when you are ready.`)
       } else {
         load()
       }

@@ -7,6 +7,12 @@ export const PORTION_UNITS = [
   { value: 'plate', label: 'plate' },
 ]
 
+/** Extra units shown only on admin menu add/edit form */
+export const MENU_FORM_PORTION_UNITS = [
+  ...PORTION_UNITS,
+  { value: 'cm', label: 'cm (pizza)' },
+]
+
 const UNIT_LABEL = {
   ml: 'ml',
   gm: 'gm',
@@ -14,6 +20,7 @@ const UNIT_LABEL = {
   kg: 'kg',
   pcs: 'pcs',
   plate: 'plate',
+  cm: 'cm',
 }
 
 export function formatPortionSize(item) {

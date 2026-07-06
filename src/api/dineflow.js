@@ -135,6 +135,7 @@ export const publicAPI = {
     params: { restaurantId, tableId },
   }),
   validateTable: (slug, tableToken) => api.get(`/public/${slug}/table`, { params: { table: tableToken } }),
+  resolveTableBySlugNumber: (slug, tableNumber) => api.get(`/public/${slug}/t/${encodeURIComponent(tableNumber)}`),
   getTables: (slug) => api.get(`/public/${slug}/tables`),
   getMenu: (slug) => api.get(`/public/${slug}/menu`),
   getPopularItems: (slug) => api.get(`/public/${slug}/popular-items`),
@@ -158,9 +159,8 @@ export const restaurantAPI = (restaurantId) => ({
   menu: (params) => api.get(`/restaurants/${restaurantId}/menu`, { params }),
   createMenuItem: (data) => {
     if (data instanceof FormData) {
-      return api.post(`/restaurants/${restaurantId}/menu`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      // Let axios set multipart boundary — manual Content-Type breaks uploads
+      return api.post(`/restaurants/${restaurantId}/menu`, data)
     }
     return api.post(`/restaurants/${restaurantId}/menu`, data)
   },
@@ -193,9 +193,7 @@ export const restaurantAPI = (restaurantId) => ({
   toggleAvailability: (id) => api.patch(`/restaurants/${restaurantId}/menu/${id}/toggle`),
   updateMenuItem: (id, data) => {
     if (data instanceof FormData) {
-      return api.put(`/restaurants/${restaurantId}/menu/${id}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      })
+      return api.put(`/restaurants/${restaurantId}/menu/${id}`, data)
     }
     return api.put(`/restaurants/${restaurantId}/menu/${id}`, data)
   },

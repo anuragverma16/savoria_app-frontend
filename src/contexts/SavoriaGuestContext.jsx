@@ -9,6 +9,8 @@ import {
 } from '../utils/savoriaGuestSession'
 import { markSkipAuthModal } from '../utils/authEntry'
 import { useCustomerOrdering } from '../hooks/useCustomerOrdering'
+import { isGuestQrOrderFlow, isQrTableSession } from '../utils/scanLink'
+import { formatCustomerFullName, isPlaceholderCustomerName, resolveCustomerDisplayName } from '../utils/customerDisplayName'
 
 const SavoriaGuestContext = createContext(null)
 
@@ -35,8 +37,15 @@ export function SavoriaGuestProvider({ children }) {
   }, [searchParams])
 
   useEffect(() => {
-    const stored = loadSavoriaSession()
+    let stored = loadSavoriaSession()
     if (stored) setSession(stored)
+
+    if (stored?.auth?.name && isPlaceholderCustomerName(stored.auth.name)) {
+      const cleaned = { ...stored.auth }
+      delete cleaned.name
+      stored = patchSavoriaSession({ auth: cleaned })
+      setSession(stored)
+    }
 
     if (accessToken && reduxUser) {
       if (stored?.auth) setAuth(stored.auth)
@@ -65,31 +74,44 @@ export function SavoriaGuestProvider({ children }) {
     return next
   }, [])
 
+  const isQrTableFlow = useMemo(
+    () => isGuestQrOrderFlow(searchParams, location.pathname) && isQrTableSession(session),
+    [searchParams, location.pathname, session],
+  )
+
+  const hasOrderCustomerAuth = Boolean(
+    auth?.verified || auth?.verifiedAt || session?.orderCustomerAuth,
+  )
+
   const isAuthenticated = useMemo(() => {
+    if (isQrTableFlow && !hasOrderCustomerAuth) return false
     if (auth?.verified || auth?.verifiedAt) return true
+    if (isQrTableFlow) return false
     return Boolean(accessToken && reduxUser)
-  }, [auth, accessToken, reduxUser])
+  }, [auth, accessToken, reduxUser, isQrTableFlow, hasOrderCustomerAuth])
 
   const userDisplayName = useMemo(() => {
-    if (auth?.name) return auth.name.split(/\s+/)[0]
-    if (reduxUser?.name) return reduxUser.name.split(/\s+/)[0]
-    if (reduxUser?.email) return reduxUser.email.split('@')[0]
-    return 'Guest'
-  }, [auth, reduxUser])
+    if (isQrTableFlow && !hasOrderCustomerAuth) return 'Guest'
+    const signedIn = Boolean(auth?.verified || auth?.verifiedAt || (accessToken && reduxUser))
+    const resolved = resolveCustomerDisplayName(auth?.name, reduxUser?.name)
+    return resolved || (signedIn ? '' : 'Guest')
+  }, [auth, reduxUser, accessToken, isQrTableFlow, hasOrderCustomerAuth])
 
   const effectiveAuth = useMemo(() => {
+    if (isQrTableFlow && !hasOrderCustomerAuth) return null
     if (auth?.verified || auth?.verifiedAt) return auth
+    if (isQrTableFlow) return null
     if (accessToken && reduxUser) {
       return {
         verified: true,
-        name: reduxUser.name,
+        name: formatCustomerFullName(reduxUser.name, ''),
         phone: reduxUser.phone,
         email: reduxUser.email,
         source: 'account',
       }
     }
     return null
-  }, [auth, accessToken, reduxUser])
+  }, [auth, accessToken, reduxUser, isQrTableFlow, hasOrderCustomerAuth])
 
   const ordering = useCustomerOrdering({
     session,
@@ -122,15 +144,33 @@ export function SavoriaGuestProvider({ children }) {
     authSuccessRef.current = null
   }, [])
 
-  const requireAuth = useCallback((redirectPath = '/order/dashboard', onSuccess) => {
-    return openAuthModal({ mode: 'login', redirectPath, onSuccess })
+  const requireAuth = useCallback((redirectPath = '/order/dashboard', options = {}) => {
+    const opts = typeof options === 'function'
+      ? { onSuccess: options }
+      : options
+    return openAuthModal({
+      mode: opts.mode || 'login',
+      redirectPath,
+      onSuccess: opts.onSuccess,
+    })
+  }, [openAuthModal])
+
+  const requirePaymentAuth = useCallback((redirectPath) => {
+    return openAuthModal({ mode: 'login', redirectPath })
   }, [openAuthModal])
 
   const completeAuth = useCallback((user, { skipSuccessCallback = false } = {}) => {
-    const next = { ...user, verified: true }
+    const cleanName = formatCustomerFullName(user?.name, '')
+    const next = {
+      ...user,
+      name: cleanName || undefined,
+      verified: true,
+    }
+    if (next.name && isPlaceholderCustomerName(next.name)) delete next.name
     setAuth(next)
     persist({
       auth: next,
+      orderCustomerAuth: true,
       restaurantName: next.restaurantName || loadSavoriaSession()?.restaurantName,
     })
     setAuthGateOpen(false)
@@ -166,6 +206,8 @@ export function SavoriaGuestProvider({ children }) {
     auth: effectiveAuth,
     isAuthenticated,
     userDisplayName,
+    isQrTableFlow,
+    hasOrderCustomerAuth,
     authGateOpen,
     authGateMode,
     authGateRedirect,
@@ -175,15 +217,16 @@ export function SavoriaGuestProvider({ children }) {
     openAuthModal,
     closeAuthModal,
     requireAuth,
+    requirePaymentAuth,
     completeAuth,
     runAuthSuccess,
     logoutGuest,
     GST_RATE: ordering.gstRate ?? GST_RATE,
     ...ordering,
   }), [
-    session, refreshSession, effectiveAuth, isAuthenticated, userDisplayName,
+    session, refreshSession, effectiveAuth, isAuthenticated, userDisplayName, isQrTableFlow,
     authGateOpen, authGateMode, authGateRedirect, authGateLoginRole, openAuthModal, closeAuthModal,
-    requireAuth, completeAuth, runAuthSuccess, logoutGuest, ordering,
+    requireAuth, completeAuth, runAuthSuccess, logoutGuest, requirePaymentAuth, ordering,
   ])
 
   return (

@@ -3,33 +3,65 @@ import { useSelector } from 'react-redux'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   FiPlus, FiEdit2, FiTrash2, FiX, FiSearch, FiImage,
-  FiClock, FiGrid, FiList, FiCoffee, FiStar,
+  FiClock, FiGrid, FiList, FiCoffee, FiStar, FiChevronDown, FiChevronUp,
 } from 'react-icons/fi'
 import { GiKnifeFork } from 'react-icons/gi'
 import { restaurantAPI } from '../../../api/dineflow'
 import { ToggleButton, StockToggle } from '../../../components/dineflow/ToggleGroup'
-import { PORTION_UNITS, formatPortionSize } from '../../../utils/portionSize'
+import { MENU_FORM_PORTION_UNITS, formatPortionSize } from '../../../utils/portionSize'
+import { INGREDIENT_CHIP_CLASS, INGREDIENT_CHIP_CLASS_SM } from '../../../data/menuCardGradients'
 import toast from 'react-hot-toast'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1512621776951-a41bdfeb9303?w=600&q=80&fit=crop'
+const MAX_ITEMS_USED = 5
+const EMPTY_ITEMS_USED = () => Array.from({ length: MAX_ITEMS_USED }, () => '')
 
-const EMPTY_ITEM = {
-  name: '',
-  description: '',
-  price: '',
-  quantity: '0',
-  portionSize: '',
-  portionUnit: 'gm',
-  discount: '0',
-  calories: '0',
-  category: '',
-  isVeg: true,
-  isBestseller: false,
-  isRecommended: false,
-  imageUrl: '',
-  imageFile: null,
-  prepTime: '15 min',
-  tags: '',
+function itemsUsedFromForm(itemsUsed = []) {
+  return itemsUsed.map((s) => String(s).trim()).filter(Boolean)
+}
+
+function itemsUsedToForm(ingredients) {
+  const list = Array.isArray(ingredients) ? ingredients : []
+  const slots = [...list.slice(0, MAX_ITEMS_USED)]
+  while (slots.length < MAX_ITEMS_USED) slots.push('')
+  return slots
+}
+
+function parseItemIngredients(raw) {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.map((i) => String(i).trim()).filter(Boolean)
+  return String(raw).split(/[,;\n]/).map((i) => i.trim()).filter(Boolean)
+}
+
+function mergeSavedMenuItem(saved, categories, previous) {
+  if (!saved) return previous
+  const catId = saved.category?._id || saved.category
+  const category = saved.category?.name
+    ? saved.category
+    : categories.find((c) => c._id === catId) || previous?.category
+  return { ...previous, ...saved, category: category || saved.category }
+}
+
+function createEmptyItem() {
+  return {
+    name: '',
+    description: '',
+    price: '',
+    quantity: '0',
+    portionSize: '',
+    portionUnit: 'gm',
+    discount: '0',
+    calories: '0',
+    category: '',
+    isVeg: true,
+    isBestseller: false,
+    isRecommended: false,
+    imageUrl: '',
+    imageFile: null,
+    prepTime: '15 min',
+    tags: '',
+    itemsUsed: EMPTY_ITEMS_USED(),
+  }
 }
 
 const PREP_TIMES = ['10 min', '15 min', '20 min', '25 min', '30 min', '45 min']
@@ -51,7 +83,7 @@ export default function MenuManagementPage() {
   const [showCat, setShowCat] = useState(false)
   const [catName, setCatName] = useState('')
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState(EMPTY_ITEM)
+  const [form, setForm] = useState(() => createEmptyItem())
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('all')
   const [view, setView] = useState('grid')
@@ -107,7 +139,7 @@ export default function MenuManagementPage() {
       setShowCat(true)
       return
     }
-    setForm({ ...EMPTY_ITEM, category: categories[0]?._id || '' })
+    setForm({ ...createEmptyItem(), category: categories[0]?._id || '' })
     setModal('add')
   }
 
@@ -129,12 +161,15 @@ export default function MenuManagementPage() {
       imageFile: null,
       prepTime: item.prepTime || '15 min',
       tags: Array.isArray(item.tags) ? item.tags.join(', ') : '',
+      itemsUsed: itemsUsedToForm(item.ingredients),
       _id: item._id,
     })
     setModal('edit')
   }
 
   const buildMenuPayload = () => {
+    const usedItems = itemsUsedFromForm(form.itemsUsed)
+    const imageUrl = form.imageUrl?.trim() || FALLBACK_IMG
     const base = {
       name: form.name.trim(),
       description: form.description.trim(),
@@ -150,11 +185,16 @@ export default function MenuManagementPage() {
       isRecommended: form.isRecommended,
       prepTime: form.prepTime,
       tags: form.tags,
+      ingredients: usedItems,
     }
 
     if (form.imageFile) {
       const fd = new FormData()
       Object.entries(base).forEach(([key, value]) => {
+        if (key === 'ingredients') {
+          fd.append(key, JSON.stringify(value))
+          return
+        }
         fd.append(key, typeof value === 'boolean' ? String(value) : String(value ?? ''))
       })
       fd.append('image', form.imageFile)
@@ -163,7 +203,7 @@ export default function MenuManagementPage() {
 
     return {
       ...base,
-      image: form.imageUrl?.trim() ? { url: form.imageUrl.trim() } : undefined,
+      image: { url: imageUrl },
     }
   }
 
@@ -190,20 +230,31 @@ export default function MenuManagementPage() {
     }
 
     const payload = buildMenuPayload()
+    const mode = modal
+    const itemId = form._id
     setSaving(true)
+    setModal(null)
     try {
       const api = restaurantAPI(rid)
-      if (modal === 'edit') {
-        await api.updateMenuItem(form._id, payload)
+      if (mode === 'edit') {
+        const { data } = await api.updateMenuItem(itemId, payload)
+        const merged = mergeSavedMenuItem(
+          data.menuItem,
+          categories,
+          items.find((i) => i._id === itemId),
+        )
+        setItems((prev) => prev.map((i) => (i._id === itemId ? merged : i)))
         toast.success('Menu item updated')
       } else {
-        await api.createMenuItem(payload)
+        const { data } = await api.createMenuItem(payload)
+        const merged = mergeSavedMenuItem(data.menuItem, categories)
+        setItems((prev) => [merged, ...prev])
         toast.success('Menu item added')
       }
-      setModal(null)
-      load()
     } catch (e) {
-      toast.error(e.response?.data?.message || 'Save failed')
+      setModal(mode)
+      const message = e.response?.data?.message || e.message || 'Save failed'
+      toast.error(message)
     } finally {
       setSaving(false)
     }
@@ -217,8 +268,20 @@ export default function MenuManagementPage() {
   }
 
   const toggleStock = async (id) => {
-    await restaurantAPI(rid).toggleAvailability(id)
-    load()
+    const previous = items.find((i) => i._id === id)
+    if (!previous) return
+    setItems((prev) => prev.map((i) => (
+      i._id === id ? { ...i, isAvailable: !i.isAvailable } : i
+    )))
+    try {
+      const { data } = await restaurantAPI(rid).toggleAvailability(id)
+      setItems((prev) => prev.map((i) => (
+        i._id === id ? mergeSavedMenuItem(data.menuItem, categories, i) : i
+      )))
+    } catch {
+      setItems((prev) => prev.map((i) => (i._id === id ? previous : i)))
+      toast.error('Could not update stock')
+    }
   }
 
   const discountedPrice = useMemo(() => {
@@ -227,6 +290,17 @@ export default function MenuManagementPage() {
     if (!price || !discount) return null
     return Math.round(price - (price * discount / 100))
   }, [form.price, form.discount])
+
+  const previewItemsUsed = useMemo(
+    () => itemsUsedFromForm(form.itemsUsed),
+    [form.itemsUsed],
+  )
+
+  const updateItemUsed = (index, value) => {
+    const itemsUsed = [...form.itemsUsed]
+    itemsUsed[index] = value
+    setForm({ ...form, itemsUsed })
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto">
@@ -379,7 +453,7 @@ export default function MenuManagementPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
-            onClick={() => setModal(null)}
+            onClick={() => { if (!saving) setModal(null) }}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -407,7 +481,7 @@ export default function MenuManagementPage() {
                     <div className="rounded-2xl overflow-hidden border border-white/10 bg-slate-950/50">
                       <div className="relative aspect-[4/3]">
                         <img src={previewImg} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.src = FALLBACK_IMG }} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
                         {!form.isVeg ? (
                           <span className="absolute top-3 left-3 flex items-center gap-1 px-2 py-1 rounded-lg bg-red-500/90 text-white text-[10px] font-bold uppercase">
                             <GiKnifeFork size={12} /> Non-veg
@@ -441,6 +515,18 @@ export default function MenuManagementPage() {
                       <div className="p-3 text-xs text-white/40 line-clamp-2 min-h-[2.5rem]">
                         {form.description || 'Description will appear here...'}
                       </div>
+                      {previewItemsUsed.length > 0 && (
+                        <div className="px-3 pb-3 text-[10px] border-t border-white/5 pt-2">
+                          <span className="uppercase tracking-wider text-emerald-400/70">Items used</span>
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {previewItemsUsed.map((ing) => (
+                              <span key={ing} className={INGREDIENT_CHIP_CLASS_SM}>
+                                {ing}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -478,7 +564,7 @@ export default function MenuManagementPage() {
                         <div>
                           <Label>Portion unit</Label>
                           <select value={form.portionUnit} onChange={(e) => setForm({ ...form, portionUnit: e.target.value })} className={`dineflow-select ${inputCls}`}>
-                            {PORTION_UNITS.map((u) => (
+                            {MENU_FORM_PORTION_UNITS.map((u) => (
                               <option key={u.value} value={u.value} className="bg-slate-900">{u.label}</option>
                             ))}
                           </select>
@@ -536,6 +622,32 @@ export default function MenuManagementPage() {
                           <Label>Tags (comma separated)</Label>
                           <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="spicy, chef special" className={inputCls} />
                         </div>
+                        <div>
+                          <Label>Items used in this product (up to {MAX_ITEMS_USED})</Label>
+                          <p className="text-[10px] text-white/30 mb-2">
+                            Listed on the menu under &quot;View more · ingredients&quot;.
+                          </p>
+                          <div className="space-y-2">
+                            {form.itemsUsed.map((value, index) => (
+                              <input
+                                key={index}
+                                value={value}
+                                onChange={(e) => updateItemUsed(index, e.target.value)}
+                                placeholder={`Item ${index + 1} e.g. ${['tomato', 'basil', 'cheese', 'chicken', 'rice'][index] || 'ingredient'}`}
+                                className={inputCls}
+                              />
+                            ))}
+                          </div>
+                          {previewItemsUsed.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {previewItemsUsed.map((ing) => (
+                                <span key={ing} className={INGREDIENT_CHIP_CLASS_SM}>
+                                  {ing}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           <ToggleButton active={form.isVeg} onClick={() => setForm({ ...form, isVeg: true })} color="emerald" variant="dark" className="flex items-center gap-1.5 px-3 py-2">
                             Vegetarian
@@ -583,6 +695,49 @@ function StatPill({ label, value, color }) {
     <div className="px-4 py-2 rounded-xl bg-white/5 border border-white/10">
       <p className={`text-lg font-bold ${color}`}>{value}</p>
       <p className="text-[10px] text-white/40 uppercase tracking-wider">{label}</p>
+    </div>
+  )
+}
+
+function MenuItemIngredientsBlock({ item, compact = false }) {
+  const [expanded, setExpanded] = useState(false)
+  const ingredients = parseItemIngredients(item.ingredients)
+  if (!ingredients.length) return null
+
+  return (
+    <div className={compact ? 'mt-1' : 'mb-3'}>
+      {!expanded && (
+        <div className={`flex flex-wrap gap-1 ${compact ? 'mb-1' : 'mb-2'} max-h-5 overflow-hidden`}>
+          {ingredients.slice(0, compact ? 3 : 4).map((ing) => (
+            <span key={ing} className={INGREDIENT_CHIP_CLASS_SM}>
+              {ing}
+            </span>
+          ))}
+          {ingredients.length > (compact ? 3 : 4) && (
+            <span className="text-[9px] text-white/40">+{ingredients.length - (compact ? 3 : 4)}</span>
+          )}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v) }}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:underline"
+      >
+        {expanded ? (
+          <>View less <FiChevronUp size={14} /></>
+        ) : (
+          <>View more · ingredients <FiChevronDown size={14} /></>
+        )}
+      </button>
+      {expanded && (
+        <ul className="mt-2 flex flex-wrap gap-1.5">
+          {ingredients.map((ing) => (
+            <li key={ing} className={INGREDIENT_CHIP_CLASS}>
+              {ing}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -649,8 +804,9 @@ function MenuCard({ item, onEdit, onDelete, onToggleStock }) {
         </div>
       </button>
       <div className="p-4">
-        <p className="text-white/50 text-xs line-clamp-2 min-h-[2rem] mb-3">{item.description || 'No description'}</p>
-        <div className="flex gap-2">
+        <p className="text-white/50 text-xs line-clamp-2 min-h-[2rem]">{item.description || 'No description'}</p>
+        <MenuItemIngredientsBlock item={item} />
+        <div className="flex gap-2 mt-3">
           <StockToggle inStock={item.isAvailable} onClick={() => onToggleStock(item._id)} className="flex-1 py-2" />
           <button type="button" onClick={() => onEdit(item)} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-emerald-400 transition-colors">
             <FiEdit2 size={14} />
@@ -688,7 +844,8 @@ function MenuRow({ item, onEdit, onDelete, onToggleStock }) {
           </div>
           <span className="text-emerald-400 font-bold shrink-0">₹{item.price}</span>
         </div>
-        <p className="text-xs text-white/50 mt-1 line-clamp-1">{item.description}</p>
+        <p className="text-xs text-white/50 mt-1 line-clamp-1">{item.description || 'No description'}</p>
+        <MenuItemIngredientsBlock item={item} compact />
       </div>
       <div className="flex flex-col gap-2 shrink-0">
         <StockToggle inStock={item.isAvailable} onClick={() => onToggleStock(item._id)} className="text-[10px] px-2 py-1" />

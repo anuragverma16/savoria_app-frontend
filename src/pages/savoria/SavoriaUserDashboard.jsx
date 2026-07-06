@@ -28,9 +28,9 @@ export default function SavoriaUserDashboard() {
   const navigate = useNavigate()
   const {
     restaurant, session, totals, orders, isAuthenticated, userDisplayName,
-    refreshSession, requireAuth,
+    refreshSession, refreshOrders,
   } = useSavoriaGuest()
-  const { withQuery } = useOrderPanelQuery()
+  const { withQuery, restaurantId, tableId } = useOrderPanelQuery()
 
   const rootRef = useRef(null)
   const heroRef = useRef(null)
@@ -42,6 +42,12 @@ export default function SavoriaUserDashboard() {
   useEffect(() => {
     refreshSession()
   }, [refreshSession])
+
+  useEffect(() => {
+    if (restaurantId && tableId) {
+      refreshOrders?.()
+    }
+  }, [restaurantId, tableId, refreshOrders])
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -73,7 +79,9 @@ export default function SavoriaUserDashboard() {
     return () => ctx.revert()
   }, [orders.length, totals.itemCount])
 
-  const hasTable = Boolean(session.qrLinked || session.tableToken || session.tableId)
+  const hasTable = Boolean(
+    session.qrLinked || session.tableToken || session.tableId || (restaurantId && tableId),
+  )
   const activeOrders = orders.filter((o) => ACTIVE_STATUSES.has(o.status))
   const menuPath = withQuery('/order/menu')
   const cartPath = withQuery('/order/cart')
@@ -81,11 +89,11 @@ export default function SavoriaUserDashboard() {
 
   const goMenu = () => navigate(hasTable ? menuPath : '/order/scan')
   const goCheckout = () => {
-    if (!isAuthenticated) {
-      requireAuth(checkoutPath)
+    if (!totals.itemCount) {
+      goMenu()
       return
     }
-    navigate(checkoutPath)
+    navigate(cartPath)
   }
 
   return (
@@ -99,7 +107,9 @@ export default function SavoriaUserDashboard() {
             {isAuthenticated ? 'Member' : 'Guest'}
           </span>
           <h1 className="sv-display text-2xl sm:text-3xl font-bold text-[var(--sv-text)] mb-2 leading-tight">
-            {isAuthenticated ? `Hello, ${userDisplayName}` : 'Welcome'}
+            {isAuthenticated
+              ? (userDisplayName ? `Hello, ${userDisplayName}` : 'Hello — add your name in Profile')
+              : 'Welcome'}
           </h1>
           <p className="text-sm text-[var(--sv-text-muted)] leading-relaxed max-w-sm mx-auto px-1">
             {hasTable

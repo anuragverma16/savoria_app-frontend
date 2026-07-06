@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { FiX, FiMinus, FiPlus, FiStar } from 'react-icons/fi'
 import { GiChiliPepper } from 'react-icons/gi'
-import toast from 'react-hot-toast'
+import { SV_INGREDIENT_CHIP_CLASS } from '../../data/menuCardGradients'
 import OptimizedImage from '../OptimizedImage'
+import toast from 'react-hot-toast'
 
 export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
   const [qty, setQty] = useState(1)
@@ -76,7 +77,22 @@ export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
                   </span>
                   <span>· {item.prepTime} min prep</span>
                 </div>
-                <p className="text-[var(--sv-text-muted)] text-sm leading-relaxed mb-5">{item.description}</p>
+                <p className="text-[var(--sv-text-muted)] text-sm leading-relaxed mb-4">{item.description}</p>
+
+                {item.ingredients?.length > 0 && (
+                  <div className="mb-5 p-4 rounded-2xl sv-glass border border-[var(--sv-border)]">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[var(--sv-accent)] mb-2">
+                      Ingredients
+                    </p>
+                    <ul className="flex flex-wrap gap-2">
+                      {item.ingredients.map((ing) => (
+                        <li key={ing} className={`text-xs px-3 py-1.5 ${SV_INGREDIENT_CHIP_CLASS}`}>
+                          {ing}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3 sv-glass rounded-full px-2 py-1">

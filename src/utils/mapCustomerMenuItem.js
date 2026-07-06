@@ -1,13 +1,22 @@
 import { itemPrice } from '../components/dineflow/MenuItemCard'
 
+function parseIngredients(raw) {
+  if (!raw) return []
+  if (Array.isArray(raw)) return raw.map((i) => String(i).trim()).filter(Boolean)
+  return String(raw).split(/[,;\n]/).map((i) => i.trim()).filter(Boolean)
+}
+
 export function mapCustomerMenuItem(item) {
   const id = String(item?._id ?? item?.id ?? '')
   const categoryId = item?.category?._id || item?.category || 'uncategorized'
+  const ingredients = parseIngredients(item?.ingredients)
+
   return {
     id,
     _id: id,
     name: item?.name || 'Item',
     description: item?.description || '',
+    ingredients,
     price: itemPrice(item),
     image: item?.image?.url || item?.image || '',
     category: categoryId,
@@ -15,7 +24,7 @@ export function mapCustomerMenuItem(item) {
     isAvailable: item?.isAvailable !== false,
     tags: item?.tags || (item?.isVeg === false ? ['Non-Veg'] : item?.isVeg ? ['Veg'] : []),
     spicy: Boolean(item?.spicy),
-    rating: item?.rating || '4.5',
+    rating: item?.rating?.average ?? item?.rating ?? '4.5',
     prepTime: item?.prepTime || item?.preparationTime || 15,
   }
 }
@@ -32,6 +41,7 @@ export function mapCustomerOrder(order) {
     grandTotal: order.total ?? order.grandTotal ?? 0,
     subtotal: order.subtotal ?? 0,
     tableNumber: order.tableNumber || order.table?.tableNumber,
+    tableId: order.table?._id || order.table || order.tableId,
     items: (order.items || []).map((line) => ({
       id: line.menuItem || line._id,
       name: line.name,

@@ -287,7 +287,10 @@ export default function TablesPage() {
             When a customer scans, they open the menu for <span className="text-white/90">{activeRestaurant?.name}</span> only.
           </p>
           <p className="mt-2 font-mono text-[11px] text-white/45 break-all">
-            /scan?restaurantId={rid}&amp;tableId=&#123;tableId&#125;&amp;no=&#123;tableNumber&#125;
+            /r/&#123;slug&#125;/t/&#123;tableNumber&#125;
+          </p>
+          <p className="mt-1 font-mono text-[11px] text-white/35 break-all">
+            /order/menu?restaurantId={rid}&amp;tableId=&#123;tableId&#125;&amp;no=&#123;tableNumber&#125;
           </p>
         </div>
       )}

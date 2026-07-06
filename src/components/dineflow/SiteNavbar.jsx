@@ -8,6 +8,7 @@ import BrandMark from './BrandMark'
 import NavbarProfileMenu from './NavbarProfileMenu'
 import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
 import { useAppAuth } from '../../hooks/useAppAuth'
+import { resolveCustomerDisplayName } from '../../utils/customerDisplayName'
 
 const NAV = [
   { label: 'Home', href: '/' },
@@ -31,7 +32,12 @@ export default function SiteNavbar({ variant = 'light' }) {
   const location = useLocation()
   const guestAuth = useSavoriaGuestOptional()
   const { isLoggedIn, displayName: profileName, savoriaAuth, goToDashboard, openLogin, user } = useAppAuth()
-  const profileFullName = guestAuth?.auth?.name || user?.name || savoriaAuth?.name || profileName
+  const profileFullName = resolveCustomerDisplayName(
+    guestAuth?.auth?.name,
+    user?.name,
+    savoriaAuth?.name,
+    profileName !== 'Guest' && profileName !== 'Account' ? profileName : '',
+  ) || (isLoggedIn ? 'Your account' : 'Guest')
   const profileEmail = guestAuth?.auth?.email || user?.email || savoriaAuth?.email || ''
   const profileInitials = (profileFullName || 'G')
     .trim()

@@ -10,7 +10,9 @@ import { hydrateTenantAfterAuth } from '../../utils/panelRole'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
+import { hasScanParams } from '../../utils/scanLink'
 import { syncGuestOrderSessionAfterAuth } from '../../utils/syncGuestOrderSession'
+import { formatCustomerFirstName } from '../../utils/customerDisplayName'
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
@@ -107,7 +109,7 @@ export default function SavoriaAuthGateModal({
 
   const handleAuthSuccess = (result) => {
     if (isPanelLogin && result?.accessToken) {
-      const name = result.user?.name?.split(/\s+/)[0] || 'there'
+      const name = formatCustomerFirstName(result.user?.name, 'there')
       toast.success(`Welcome, ${name}!`)
       closeAuthModal()
       onClose()
@@ -129,9 +131,19 @@ export default function SavoriaAuthGateModal({
     const authPayload = result?.accessToken ? result : null
     const user = authPayload?.user || result
     const phoneHint = result?.phone || user?.phone
-    const openSuperAdmin = Boolean(result?.isSuperAdmin)
+    const savoriaSession = loadSavoriaSession()
+    const onOrderPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/order')
+    const inQrTableOrder = Boolean(
+      savoriaSession?.scanLocked
+      && savoriaSession?.qrLinked
+      && onOrderPath
+      && (hasScanParams(new URLSearchParams(window.location.search)) || window.location.pathname.includes('/order/menu')),
+    )
+    let openSuperAdmin = Boolean(result?.isSuperAdmin)
       || shouldOpenSuperAdminPanel(user, phoneHint)
-    const scannedRid = loadSavoriaSession()?.rid
+    if (inQrTableOrder) openSuperAdmin = false
+
+    const scannedRid = savoriaSession?.rid
 
     superAdminLoginRef.current = openSuperAdmin
 
@@ -173,7 +185,7 @@ export default function SavoriaAuthGateModal({
       }
     }
 
-    const firstName = user?.name?.split(' ')[0] || 'Guest'
+    const firstName = formatCustomerFirstName(user?.name, 'there')
     const panelRole = authPayload?.user?.role
 
     if (authPayload?.accessToken && (panelRole === 'staff' || panelRole === 'admin')) {
@@ -203,18 +215,22 @@ export default function SavoriaAuthGateModal({
     closeAuthModal()
     onClose()
 
-    if (openSuperAdmin) {
+    if (openSuperAdmin && !inQrTableOrder) {
       resetPageLocks()
       navigate('/platform', { replace: true })
       return
     }
 
+    if (redirectPath && redirectPath.startsWith('/order')) {
+      navigate(redirectPath, { replace: true })
+      return
+    }
     if (redirectPath && !redirectPath.startsWith('/order')) {
       navigate(redirectPath)
       return
     }
     if (panelRole === 'user' || !authPayload?.accessToken) {
-      navigate(redirectPath || '/order/dashboard')
+      navigate(redirectPath || '/order/dashboard', { replace: true })
     }
   }
 

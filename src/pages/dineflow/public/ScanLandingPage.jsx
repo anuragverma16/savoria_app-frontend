@@ -3,11 +3,11 @@ import { useDispatch } from 'react-redux'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { FiMaximize2 } from 'react-icons/fi'
 import { parseScanLink } from '../../../utils/scanLink'
-import { validateAndLinkScan, menuPathAfterTableLink } from '../../../utils/linkGuestTablePublic'
+import { bootstrapScanMenuLink, menuPathAfterTableLink } from '../../../utils/linkGuestTablePublic'
 
 /**
  * QR scan entry — /scan?restaurantId=&tableId=
- * Validates → stores session → redirects to user dashboard.
+ * Validates → stores session → opens menu with restaurant + table params.
  */
 export default function ScanLandingPage() {
   const [searchParams] = useSearchParams()
@@ -32,7 +32,7 @@ export default function ScanLandingPage() {
       }
 
       try {
-        const result = await validateAndLinkScan(dispatch, restaurantId, tableId)
+        const result = await bootstrapScanMenuLink(dispatch, restaurantId, tableId)
         if (cancelled) return
 
         if (!result.booked) {
@@ -47,7 +47,7 @@ export default function ScanLandingPage() {
           return
         }
 
-        navigate(menuPathAfterTableLink(restaurantId, result.table, true), { replace: true })
+        navigate(menuPathAfterTableLink(restaurantId, result.table, true), { replace: true, state: { fromScan: true } })
       } catch (err) {
         if (cancelled) return
         if (!err.response && !err.code) {
@@ -84,8 +84,8 @@ export default function ScanLandingPage() {
   return (
     <div className="min-h-screen bg-[#0c0a09] flex flex-col items-center justify-center p-6 text-center">
       <FiMaximize2 className="text-emerald-400 mb-4 animate-pulse" size={44} />
-      <p className="text-white font-semibold text-lg">Opening your table menu…</p>
-      <p className="text-white/50 text-sm mt-2">Validating QR code</p>
+      <p className="text-white font-semibold text-lg">Opening your table…</p>
+      <p className="text-white/50 text-sm mt-2">Loading menu…</p>
     </div>
   )
 }

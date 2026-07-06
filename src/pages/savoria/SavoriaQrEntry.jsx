@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { Navigate, useSearchParams } from 'react-router-dom'
-import { initSavoriaSessionFromParams } from '../../utils/savoriaGuestSession'
-import { orderDashboardAfterScan } from '../../utils/orderPanelPaths'
+import { initSavoriaSessionFromParams, loadSavoriaSession } from '../../utils/savoriaGuestSession'
+import { orderMenuAfterScan } from '../../utils/orderPanelPaths'
 
-/** QR entry at /order — open user dashboard for restaurant + table params */
+/** QR entry at /order — open menu when restaurant + table params are present */
 export default function SavoriaQrEntry() {
   const [searchParams] = useSearchParams()
+  const session = loadSavoriaSession() || {}
 
   const restaurantId = searchParams.get('restaurantId') || searchParams.get('rid')
   const tableId = searchParams.get('tableId')
@@ -15,13 +16,22 @@ export default function SavoriaQrEntry() {
   }, [searchParams])
 
   if (restaurantId && tableId) {
+    const tableMeta = {
+      _id: tableId,
+      tableId,
+      tableNumber: searchParams.get('no') || searchParams.get('tableNumber'),
+      tableToken: searchParams.get('table'),
+    }
+    return <Navigate to={orderMenuAfterScan(restaurantId, tableMeta)} replace />
+  }
+
+  if (session.scanLocked && session.rid && session.tableId) {
     return (
       <Navigate
-        to={orderDashboardAfterScan(restaurantId, {
-          _id: tableId,
-          tableId,
-          tableNumber: searchParams.get('no') || searchParams.get('tableNumber'),
-          tableToken: searchParams.get('table'),
+        to={orderMenuAfterScan(session.rid, {
+          tableId: session.tableId,
+          tableNumber: session.tableNumber,
+          tableToken: session.tableToken,
         })}
         replace
       />

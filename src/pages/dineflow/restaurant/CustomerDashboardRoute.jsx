@@ -6,9 +6,8 @@ import OrderUserRedirect from '../../../components/OrderUserRedirect'
 /** Super admin preview only; real customers use /order/* */
 export default function CustomerDashboardRoute() {
   const { user } = useSelector((s) => s.auth)
-  const { impersonating } = useSelector((s) => s.tenant)
 
-  if (isSuperAdminUser(user) && impersonating) {
+  if (isSuperAdminUser(user)) {
     return <SuperAdminCustomerDashboard />
   }
 

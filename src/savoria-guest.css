@@ -414,3 +414,225 @@
 [data-savoria-theme="dark"] .user-panel--shell main {
   background: transparent;
 }
+
+/* QR dine-in shell — full-bleed guest experience */
+.sv-order-shell {
+  background: var(--sv-bg);
+}
+
+.sv-order-shell > .flex-1 {
+  background: var(--sv-gradient);
+}
+
+.sv-order-shell-bar {
+  flex-shrink: 0;
+  padding: 0.5rem 1rem;
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+  border-bottom: 1px solid var(--sv-border);
+  background: var(--sv-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.sv-table-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: var(--sv-accent-glow);
+  color: var(--sv-accent);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+}
+
+.sv-guest-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, var(--sv-accent-glow), transparent);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.sv-guest-hint-icon {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sv-surface);
+  color: var(--sv-accent);
+  font-size: 1rem;
+}
+
+.sv-order-steps {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sv-order-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.sv-order-step-label {
+  margin-top: 0.35rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--sv-text-muted);
+  white-space: nowrap;
+}
+
+.sv-order-step.active .sv-order-step-label,
+.sv-order-step.done .sv-order-step-label {
+  color: var(--sv-accent);
+}
+
+.sv-order-step-line {
+  position: absolute;
+  top: 1rem;
+  left: calc(50% + 1rem);
+  width: calc(100% - 2rem);
+  height: 2px;
+  background: var(--sv-border);
+  pointer-events: none;
+}
+
+.sv-order-step.done .sv-order-step-line {
+  background: linear-gradient(90deg, var(--sv-accent), var(--sv-border));
+}
+
+.op-action-btn {
+  min-height: 3.25rem;
+  scroll-snap-align: start;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.op-action-btn:active {
+  transform: scale(0.96);
+}
+
+.op-action-btn[aria-current="page"],
+.op-action-btn.is-active {
+  box-shadow: 0 4px 20px var(--sv-accent-glow);
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.sv-sticky-bar--cart {
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.25);
+}
+
+.sv-sticky-bar-cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+}
+
+.sv-sticky-bar-cta strong {
+  font-size: 1.125rem;
+  line-height: 1.2;
+  color: var(--sv-text);
+}
+
+.sv-section-card {
+  border-radius: 1.25rem;
+  padding: 1.125rem 1.25rem;
+  background: var(--sv-glass);
+  border: 1px solid var(--sv-glass-border);
+  box-shadow: var(--sv-shadow);
+}
+
+.sv-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--sv-text);
+  margin-bottom: 0.875rem;
+}
+
+.sv-section-title svg {
+  color: var(--sv-accent);
+  flex-shrink: 0;
+}
+
+.sv-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+}
+
+.sv-empty-state-icon {
+  width: 5rem;
+  height: 5rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  background: var(--sv-accent-glow);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  color: var(--sv-accent);
+}
+
+.sv-loading-table {
+  min-height: 60dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--sv-text-muted);
+}
+
+.sv-loading-table-spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 9999px;
+  border: 2px solid var(--sv-border);
+  border-top-color: var(--sv-accent);
+  animation: sv-spin 0.8s linear infinite;
+}
+
+@keyframes sv-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .sv-food-card .sv-quick-add {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

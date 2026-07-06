@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { publicAPI, restaurantAPI } from '../api/dineflow'
 import {
@@ -17,8 +18,21 @@ import { mapCustomerMenuItem, mapCustomerOrder } from '../utils/mapCustomerMenuI
 import { getCartRestaurantConflict } from '../utils/cartRestaurantConflict'
 import { useCustomerPaths } from './useCustomerPaths'
 
+/** Keep orders scoped to the scanned restaurant + table */
+function filterOrdersForScan(orders, { rid, tableId, tableNumber }) {
+  if (!rid && !tableId && !tableNumber) return orders
+  return orders.filter((o) => {
+    if (rid && o.restaurantId && String(o.restaurantId) !== String(rid)) return false
+    if (!tableId && !tableNumber) return true
+    if (tableId && o.tableId && String(o.tableId) === String(tableId)) return true
+    if (tableNumber && o.tableNumber && String(o.tableNumber) === String(tableNumber)) return true
+    return false
+  })
+}
+
 export function useCustomerOrdering({ session, refreshSession, isAuthenticated } = {}) {
   const dispatch = useDispatch()
+  const [searchParams] = useSearchParams()
   const paths = useCustomerPaths()
   const { activeRestaurant } = useSelector((s) => s.tenant)
   const cartState = useSelector((s) => s.cart)
@@ -38,7 +52,13 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   const [lastPlacedOrderId, setLastPlacedOrderId] = useState(null)
   const [switchPrompt, setSwitchPrompt] = useState(null)
 
-  const rid = session?.rid || activeRestaurant?._id
+  const urlRid = searchParams.get('restaurantId') || searchParams.get('rid')
+  const urlTableId = searchParams.get('tableId')
+  const urlTableNo = searchParams.get('no') || searchParams.get('tableNumber')
+
+  const rid = session?.rid || activeRestaurant?._id || urlRid || null
+  const tableId = session?.tableId || urlTableId || null
+  const tableNumber = session?.tableNumber || session?.table?.tableNumber || urlTableNo || null
   const gstRate = settings?.taxRate ?? activeRestaurant?.settings?.taxRate ?? 5
   const serviceRate = settings?.serviceCharge ?? activeRestaurant?.settings?.serviceCharge ?? 0
   const gst = Math.round(subtotal * gstRate / 100)
@@ -56,9 +76,9 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     address: restaurantMeta?.address || activeRestaurant?.address,
     description: restaurantMeta?.description || activeRestaurant?.description,
     settings: { ...activeRestaurant?.settings, ...settings },
-    tableNumber: session?.tableNumber || table?.tableNumber,
-    tableId: session?.tableId || table?._id,
-  }), [rid, restaurantMeta, activeRestaurant, session, settings, table])
+    tableNumber: session?.tableNumber || table?.tableNumber || tableNumber,
+    tableId: session?.tableId || table?._id || tableId,
+  }), [rid, restaurantMeta, activeRestaurant, session, settings, table, tableNumber, tableId])
 
   const mappedMenuItems = useMemo(
     () => menuItems.map(mapCustomerMenuItem),
@@ -101,15 +121,17 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   }), [subtotal, gst, service, discount, total, itemCount])
 
   const loadMenu = useCallback(async () => {
-    if (!rid) return
+    const scopeRid = rid || urlRid
+    if (!scopeRid) return
     setMenuLoading(true)
     setMenuError(null)
     try {
-      if (session?.qrLinked && session?.tableId) {
-        const { data } = await publicAPI.getScanMenu(rid, session.tableId)
+      const scopeTableId = tableId || urlTableId
+      if ((session?.qrLinked || (urlRid && urlTableId)) && scopeTableId) {
+        const { data } = await publicAPI.getScanMenu(scopeRid, scopeTableId)
         const restaurantData = data.restaurant || {}
         dispatch(setActiveRestaurant({
-          _id: restaurantData._id || rid,
+          _id: restaurantData._id || scopeRid,
           name: restaurantData.name,
           slug: restaurantData.slug,
           settings: restaurantData.settings,
@@ -142,23 +164,37 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     } finally {
       setMenuLoading(false)
     }
-  }, [rid, session?.qrLinked, session?.tableId, session?.slug, activeRestaurant?.slug, dispatch])
+  }, [rid, urlRid, urlTableId, tableId, session?.qrLinked, session?.tableId, session?.slug, activeRestaurant?.slug, dispatch])
 
   const refreshOrders = useCallback(async () => {
-    const session = loadSavoriaSession() || {}
-    const sessionOrders = (session.orders || [])
-      .map(mapCustomerOrder)
-      .filter((o) => !rid || String(o.restaurantId || session.rid) === String(rid))
+    const stored = loadSavoriaSession() || {}
+    const scopeRid = rid || urlRid
+    const scopeTableId = tableId || urlTableId
+    const scopeTableNo = tableNumber || urlTableNo
 
-    if (!rid || !isAuthenticated) {
+    let sessionOrders = (stored.orders || [])
+      .map(mapCustomerOrder)
+      .filter(Boolean)
+    sessionOrders = filterOrdersForScan(sessionOrders, {
+      rid: scopeRid,
+      tableId: scopeTableId,
+      tableNumber: scopeTableNo,
+    })
+
+    if (!scopeRid || !isAuthenticated) {
       setOrders(sessionOrders)
       return
     }
 
     setOrdersLoading(true)
     try {
-      const { data } = await restaurantAPI(rid).myOrders()
-      const apiOrders = (data.orders || []).map(mapCustomerOrder)
+      const { data } = await restaurantAPI(scopeRid).myOrders()
+      let apiOrders = (data.orders || []).map(mapCustomerOrder).filter(Boolean)
+      apiOrders = filterOrdersForScan(apiOrders, {
+        rid: scopeRid,
+        tableId: scopeTableId,
+        tableNumber: scopeTableNo,
+      })
       const merged = [...apiOrders]
       sessionOrders.forEach((so) => {
         if (!merged.some((o) => o.id === so.id)) merged.push(so)
@@ -170,7 +206,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     } finally {
       setOrdersLoading(false)
     }
-  }, [rid, isAuthenticated])
+  }, [rid, urlRid, urlTableId, urlTableNo, tableId, tableNumber, isAuthenticated])
 
   useEffect(() => {
     loadMenu()

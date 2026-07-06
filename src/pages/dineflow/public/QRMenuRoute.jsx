@@ -33,7 +33,7 @@ export default function QRMenuRoute() {
         next.set('restaurantId', String(rid))
         next.set('tableId', String(tableId))
         if (data.table?.tableNumber) next.set('no', String(data.table.tableNumber))
-        setTarget(`/scan?${next.toString()}`)
+        setTarget(`/order/menu?${next.toString()}`)
       })
       .catch(() => setFailed(true))
   }, [slug, searchParams])

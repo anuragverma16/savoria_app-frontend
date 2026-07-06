@@ -3,7 +3,7 @@ import { initCart } from '../store/slices/cartSlice'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { saveUserTableSession } from './userTableSession'
 import { patchSavoriaSession } from './savoriaGuestSession'
-import { orderDashboardAfterScan } from './orderPanelPaths'
+import { orderMenuAfterScan } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
 /** Link table after QR scan (restaurantId + tableId) */
@@ -55,9 +55,59 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
     tableNumber: table.tableNumber != null ? String(table.tableNumber) : undefined,
     qrLinked: true,
     scanLocked: true,
+    auth: null,
+    orderCustomerAuth: false,
   })
 
   return { booked: true, table: session.table, restaurant }
+}
+
+/** Link table via scan menu API (single call — works for direct /order/menu URLs) */
+export async function bootstrapScanMenuLink(dispatch, restaurantId, tableId) {
+  let data
+  try {
+    const res = await publicAPI.getScanMenu(restaurantId, tableId)
+    data = res?.data
+  } catch (err) {
+    if (!err.response) {
+      const netErr = new Error(err.message || 'Cannot reach server. Check your connection.')
+      netErr.code = 'NETWORK_ERROR'
+      throw netErr
+    }
+    const code = err.response?.data?.code
+    const message = err.response?.data?.message
+    if (code === 'INVALID_QR') {
+      const e = new Error(message || 'Invalid QR Code')
+      e.code = 'INVALID_QR'
+      throw e
+    }
+    if (code === 'TABLE_NOT_FOUND') {
+      const e = new Error(message || 'Table Not Found')
+      e.code = 'TABLE_NOT_FOUND'
+      throw e
+    }
+    if (err.response?.status === 403 || err.response?.status === 404) {
+      return {
+        booked: false,
+        code: code || 'TABLE_UNAVAILABLE',
+        message: message || 'Table is not available right now.',
+        table: err.response?.data?.table,
+        restaurant: err.response?.data?.restaurant,
+      }
+    }
+    throw err
+  }
+
+  if (!data?.restaurant || !data?.table) {
+    const err = new Error('Invalid server response.')
+    err.code = 'INVALID_RESPONSE'
+    throw err
+  }
+
+  return linkGuestTableScan(dispatch, {
+    restaurant: data.restaurant,
+    table: data.table,
+  })
 }
 
 /** Validate scan via API and link table */
@@ -152,6 +202,8 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
     tableNumber: table.tableNumber,
     qrLinked: true,
     scanLocked: true,
+    auth: null,
+    orderCustomerAuth: false,
   })
 
   return { booked: true, table, restaurant: data.restaurant }
@@ -159,7 +211,7 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
 
 export function menuPathAfterTableLink(restaurantId, table, isOrderPanel = true) {
   if (isOrderPanel) {
-    return orderDashboardAfterScan(restaurantId, table)
+    return orderMenuAfterScan(restaurantId, table)
   }
   return buildMenuQrPath(restaurantId, table._id)
 }

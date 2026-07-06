@@ -56,6 +56,10 @@ export function initSavoriaSessionFromParams(searchParams) {
   const slug = searchParams.get('slug')
 
   const existing = loadSavoriaSession() || {}
+  const isNewTableScan = Boolean(
+    rid && tableId
+    && (String(existing.rid) !== String(rid) || String(existing.tableId) !== String(tableId)),
+  )
 
   const session = {
     ...existing,
@@ -65,11 +69,12 @@ export function initSavoriaSessionFromParams(searchParams) {
     tableNumber: tableNumber || existing.tableNumber,
     slug: slug || existing.slug,
     restaurantName: existing.restaurantName,
-    cart: existing.cart || [],
-    auth: existing.auth || null,
-    orders: existing.orders || [],
-    scanLocked: existing.scanLocked || false,
-    qrLinked: existing.qrLinked || Boolean((rid || existing.rid) && (tableId || existing.tableId)),
+    cart: isNewTableScan ? [] : (existing.cart || []),
+    auth: isNewTableScan ? null : (existing.auth || null),
+    orderCustomerAuth: isNewTableScan ? false : Boolean(existing.orderCustomerAuth),
+    orders: isNewTableScan ? [] : (existing.orders || []),
+    scanLocked: isNewTableScan ? false : (existing.scanLocked || false),
+    qrLinked: Boolean((rid || existing.rid) && (tableId || existing.tableId)),
     updatedAt: Date.now(),
   }
 

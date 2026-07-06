@@ -46,6 +46,16 @@ export function orderMenuAfterScan(restaurantId, table) {
   return buildOrderPanelPath('menu', restaurantId, table)
 }
 
+/** Locked QR session — always return menu path for this table */
+export function resolveLockedMenuPath(session) {
+  if (!session?.rid || !session?.tableId) return '/order/menu'
+  return orderMenuAfterScan(session.rid, {
+    tableId: session.tableId,
+    tableNumber: session.tableNumber,
+    tableToken: session.tableToken,
+  })
+}
+
 /** After QR scan — open full user panel home for this restaurant + table */
 export function orderDashboardAfterScan(restaurantId, table) {
   return buildOrderPanelPath('dashboard', restaurantId, table)
