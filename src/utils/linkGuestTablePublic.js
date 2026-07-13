@@ -2,7 +2,7 @@ import { publicAPI } from '../api/dineflow'
 import { initCart } from '../store/slices/cartSlice'
 import { setActiveRestaurant } from '../store/slices/tenantSlice'
 import { saveUserTableSession } from './userTableSession'
-import { patchSavoriaSession } from './savoriaGuestSession'
+import { patchSavoriaSession, loadSavoriaSession, restoreCustomerAuthIntoSession } from './savoriaGuestSession'
 import { orderMenuAfterScan } from './orderPanelPaths'
 import { buildMenuQrPath } from '../hooks/useCustomerPaths'
 
@@ -56,6 +56,8 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
     qrLinked: true,
     scanLocked: true,
   })
+
+  restoreCustomerAuthIntoSession()
 
   return { booked: true, table: session.table, restaurant }
 }
@@ -200,9 +202,9 @@ export async function linkGuestTablePublic(dispatch, { slug, tableToken, tableId
     tableNumber: table.tableNumber,
     qrLinked: true,
     scanLocked: true,
-    auth: null,
-    orderCustomerAuth: false,
   })
+
+  restoreCustomerAuthIntoSession()
 
   return { booked: true, table, restaurant: data.restaurant }
 }

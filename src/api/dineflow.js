@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { patchSavoriaSession } from '../utils/savoriaGuestSession'
+import { patchSavoriaSession, savePersistedCustomerAuth, clearPersistedCustomerAuth, loadSavoriaSession } from '../utils/savoriaGuestSession'
 import { getIsolatedOrderCustomerAuth } from '../utils/panelAuthPreserve'
 
 const PRODUCTION_API_ORIGIN = 'https://savoriabackend.sengarinfotech.com'
@@ -90,10 +90,20 @@ api.interceptors.response.use(
               refreshToken: data.refreshToken,
             },
           })
+          const stored = loadSavoriaSession()
+          savePersistedCustomerAuth({
+            phone: stored?.auth?.phone,
+            auth: stored?.auth,
+            customerTokens: {
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+            },
+          })
           error.config.headers = error.config.headers || {}
           error.config.headers.Authorization = `Bearer ${data.accessToken}`
           return api(error.config)
         } catch {
+          clearPersistedCustomerAuth()
           patchSavoriaSession({
             auth: null,
             orderCustomerAuth: false,

@@ -1,4 +1,47 @@
 const SESSION_KEY = 'savoria_guest_session'
+const CUSTOMER_AUTH_KEY = 'savoria_customer_auth'
+
+export function loadPersistedCustomerAuth() {
+  try {
+    const raw = localStorage.getItem(CUSTOMER_AUTH_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
+
+export function savePersistedCustomerAuth({ phone, auth, customerTokens } = {}) {
+  if (!customerTokens?.accessToken && !auth?.verified) return null
+  const payload = {
+    phone: phone || auth?.phone || null,
+    auth: auth || null,
+    customerTokens: customerTokens || null,
+    updatedAt: Date.now(),
+  }
+  localStorage.setItem(CUSTOMER_AUTH_KEY, JSON.stringify(payload))
+  return payload
+}
+
+export function clearPersistedCustomerAuth() {
+  localStorage.removeItem(CUSTOMER_AUTH_KEY)
+}
+
+/** Merge durable customer login into savoria session (survives QR re-scan) */
+export function restoreCustomerAuthIntoSession() {
+  const current = loadSavoriaSession() || {}
+  if (current.auth?.verified && current.customerTokens?.accessToken) {
+    return current
+  }
+
+  const persisted = loadPersistedCustomerAuth()
+  if (!persisted?.customerTokens?.accessToken) return current
+
+  return patchSavoriaSession({
+    auth: persisted.auth || current.auth,
+    orderCustomerAuth: true,
+    customerTokens: persisted.customerTokens,
+  })
+}
 
 export function loadSavoriaSession() {
   try {
@@ -60,7 +103,6 @@ export function initSavoriaSessionFromParams(searchParams) {
     rid && tableId
     && (String(existing.rid) !== String(rid) || String(existing.tableId) !== String(tableId)),
   )
-  const isNewRestaurant = Boolean(rid && existing.rid && String(existing.rid) !== String(rid))
 
   const session = {
     ...existing,
@@ -71,9 +113,11 @@ export function initSavoriaSessionFromParams(searchParams) {
     slug: slug || existing.slug,
     restaurantName: existing.restaurantName,
     cart: isNewTableScan ? [] : (existing.cart || []),
-    auth: isNewRestaurant ? null : (existing.auth || null),
-    orderCustomerAuth: isNewRestaurant ? false : Boolean(existing.orderCustomerAuth),
-    customerTokens: isNewRestaurant ? null : (existing.customerTokens || null),
+    auth: existing.auth || null,
+    orderCustomerAuth: Boolean(
+      existing.orderCustomerAuth || existing.auth?.verified || existing.customerTokens?.accessToken,
+    ),
+    customerTokens: existing.customerTokens || null,
     orders: isNewTableScan ? [] : (existing.orders || []),
     scanLocked: isNewTableScan ? false : (existing.scanLocked || false),
     qrLinked: Boolean((rid || existing.rid) && (tableId || existing.tableId)),
@@ -81,5 +125,5 @@ export function initSavoriaSessionFromParams(searchParams) {
   }
 
   saveSavoriaSession(session)
-  return session
+  return restoreCustomerAuthIntoSession()
 }

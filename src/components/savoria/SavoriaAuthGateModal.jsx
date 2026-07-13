@@ -255,10 +255,12 @@ export default function SavoriaAuthGateModal({
       verified: true,
     }, {
       skipSuccessCallback: openSuperAdmin,
-      customerTokens: authPayload?.accessToken ? {
-        accessToken: authPayload.accessToken,
-        refreshToken: authPayload.refreshToken,
-      } : undefined,
+      customerTokens: inQrTableOrder && authPayload?.accessToken
+        ? {
+          accessToken: authPayload.accessToken,
+          refreshToken: authPayload.refreshToken,
+        }
+        : undefined,
     })
 
     toast.success(`Welcome, ${firstName}!`)

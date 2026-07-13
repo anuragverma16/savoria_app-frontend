@@ -1,4 +1,4 @@
-import { loadSavoriaSession } from './savoriaGuestSession'
+import { loadSavoriaSession, loadPersistedCustomerAuth } from './savoriaGuestSession'
 import { isSuperAdminUser } from './panelRole'
 
 /** Platform / restaurant panel accounts that must not be replaced by QR customer OTP */
@@ -22,27 +22,32 @@ export function shouldPreservePanelAuthDuringQrOrder(panelAuth = getStoredPanelA
   return Boolean(panelAuth?.accessToken && isPanelAccountUser(panelAuth.user))
 }
 
-/** Customer JWT in savoria session — used on /order routes so QR login persists across scans */
+/** Customer JWT for /order routes — savoria session or durable store */
 export function getIsolatedOrderCustomerAuth() {
   if (typeof window === 'undefined') return null
   if (!window.location.pathname.startsWith('/order')) return null
 
   const savoria = loadSavoriaSession()
-  if (!savoria?.orderCustomerAuth || !savoria?.customerTokens?.accessToken) return null
+  const persisted = loadPersistedCustomerAuth()
+  const tokens = savoria?.customerTokens?.accessToken
+    ? savoria.customerTokens
+    : persisted?.customerTokens
+  const hasCustomerSession = Boolean(
+    savoria?.orderCustomerAuth
+    || savoria?.auth?.verified
+    || persisted?.auth?.verified,
+  )
 
-  const panelAuth = getStoredPanelAuth()
-  if (panelAuth?.accessToken && isPanelAccountUser(panelAuth.user)) {
-    return {
-      accessToken: savoria.customerTokens.accessToken,
-      refreshToken: savoria.customerTokens.refreshToken,
-      restaurantId: savoria.rid ? String(savoria.rid) : null,
-    }
-  }
+  if (!hasCustomerSession || !tokens?.accessToken) return null
+
+  const restaurantId = savoria?.rid
+    ? String(savoria.rid)
+    : (persisted?.restaurantId ? String(persisted.restaurantId) : null)
 
   return {
-    accessToken: savoria.customerTokens.accessToken,
-    refreshToken: savoria.customerTokens.refreshToken,
-    restaurantId: savoria.rid ? String(savoria.rid) : null,
+    accessToken: tokens.accessToken,
+    refreshToken: tokens.refreshToken,
+    restaurantId,
   }
 }
 
