@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { FiPlus, FiTrash2, FiUsers, FiMaximize2, FiGrid, FiX, FiMapPin, FiClock, FiCheck, FiLink } from 'react-icons/fi'
 import TableBookingLinksPanel from '../../../components/dineflow/TableBookingLinksPanel'
-import { buildTableBookingUrl, copyTableBookingLink } from '../../../utils/tableBookingLink'
-import { downloadQrPng, downloadQrPdf, printQr } from '../../../utils/tableQrDownload'
+import { buildTableBookingUrl } from '../../../utils/tableBookingLink'
+import { downloadQrPng } from '../../../utils/tableQrDownload'
 import { restaurantAPI } from '../../../api/dineflow'
 import AnimatedButton from '../../../components/dineflow/AnimatedButton'
 import { io } from 'socket.io-client'
@@ -195,10 +195,6 @@ export default function TablesPage() {
 
   const downloadQr = (table) => downloadQrPng(table, activeRestaurant?.name)
 
-  const downloadPdf = (table) => downloadQrPdf(table, activeRestaurant?.name)
-
-  const printTableQr = (table) => printQr(table, activeRestaurant?.name)
-
   const regenerateTableQr = async (tableId) => {
     try {
       await restaurantAPI(rid).regenerateTableQR(tableId)
@@ -212,15 +208,6 @@ export default function TablesPage() {
   const getBookingLink = (table) => (
     table?.qrTargetUrl || buildTableBookingUrl(rid, table, qrBaseUrl || undefined)
   )
-
-  const copyBookingLink = async (table) => {
-    try {
-      await copyTableBookingLink(getBookingLink(table))
-      toast.success(`Table ${table.tableNumber} booking link copied`)
-    } catch {
-      toast.error('Could not copy link')
-    }
-  }
 
   const previewRange = () => {
     const count = Math.min(Number(form.count) || 0, 5)
@@ -558,31 +545,10 @@ export default function TablesPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => downloadPdf(t)}
-                        className="w-full mt-2 py-2 rounded-lg text-violet-300 text-[10px] font-semibold border border-violet-500/30 hover:bg-violet-500/10"
-                      >
-                        Download PDF
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => printTableQr(t)}
-                        className="w-full mt-2 py-2 rounded-lg text-sky-300 text-[10px] font-semibold border border-sky-500/30 hover:bg-sky-500/10"
-                      >
-                        Print QR
-                      </button>
-                      <button
-                        type="button"
                         onClick={() => regenerateTableQr(t._id)}
                         className="w-full mt-2 py-2 rounded-lg text-amber-300 text-[10px] font-semibold border border-amber-500/30 hover:bg-amber-500/10"
                       >
                         Regenerate QR
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => copyBookingLink(t)}
-                        className="w-full mt-2 py-2 rounded-lg text-emerald-300 text-[10px] font-semibold border border-emerald-500/30 hover:bg-emerald-500/10 flex items-center justify-center gap-1"
-                      >
-                        <FiLink size={12} /> Copy booking link
                       </button>
                     </div>
                   ) : (
@@ -615,36 +581,19 @@ export default function TablesPage() {
             </span>
             {selectedQR.location && <p className="text-slate-400 text-xs mb-4">{selectedQR.location}</p>}
             <img src={selectedQR.qrCodeUrl} alt="QR" className="w-64 h-64 mx-auto rounded-lg border border-slate-200 bg-white p-2" />
-            <p className="mt-3 text-[10px] text-slate-500 font-mono break-all text-left px-1">
-              {getBookingLink(selectedQR)}
-            </p>
-            <button
-              type="button"
-              onClick={() => copyBookingLink(selectedQR)}
-              className="mt-4 w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
-            >
-              <FiLink size={16} /> Copy booking link
-            </button>
             <button
               type="button"
               onClick={() => downloadQr(selectedQR)}
-              className="mt-2 w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold"
+              className="mt-5 w-full py-2.5 rounded-xl bg-violet-600 text-white text-sm font-semibold"
             >
               Download PNG
             </button>
             <button
               type="button"
-              onClick={() => downloadPdf(selectedQR)}
-              className="mt-2 w-full py-2.5 rounded-xl bg-violet-500 text-white text-sm font-semibold"
+              onClick={() => setSelectedQR(null)}
+              className="mt-2 w-full py-2 rounded-xl text-slate-500 text-sm hover:bg-slate-100"
             >
-              Download PDF
-            </button>
-            <button
-              type="button"
-              onClick={() => printTableQr(selectedQR)}
-              className="mt-2 w-full py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold"
-            >
-              Print QR
+              Close
             </button>
           </div>
         </div>
