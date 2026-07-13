@@ -44,8 +44,8 @@ export default function SiteFooter() {
             </p>
             <div className="space-y-2.5 text-sm text-white/45">
               <p className="flex items-center gap-2"><FiMail className="text-orange-400" /> support@savoria.com</p>
-              <p className="flex items-center gap-2"><FiPhone className="text-blue-400" /> +91 98765 43210</p>
-              <p className="flex items-center gap-2"><FiMapPin className="text-green-400" /> Mumbai, India</p>
+              <p className="flex items-center gap-2"><FiPhone className="text-blue-400" /> +91 9758875080</p>
+              <p className="flex items-center gap-2"><FiMapPin className="text-green-400" /> Noida, India</p>
             </div>
           </div>
 
