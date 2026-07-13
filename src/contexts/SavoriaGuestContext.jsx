@@ -11,6 +11,7 @@ import { markSkipAuthModal } from '../utils/authEntry'
 import { useCustomerOrdering } from '../hooks/useCustomerOrdering'
 import { isGuestQrOrderFlow, isQrTableSession } from '../utils/scanLink'
 import { formatCustomerFullName, isPlaceholderCustomerName, resolveCustomerDisplayName, resolveCustomerPhone } from '../utils/customerDisplayName'
+import { authAPI } from '../api/dineflow'
 import {
   getStoredPanelAuth,
   shouldPreservePanelAuthDuringQrOrder,
@@ -37,7 +38,13 @@ export function SavoriaGuestProvider({ children }) {
   useEffect(() => {
     const next = initSavoriaSessionFromParams(searchParams)
     setSession(next)
-    if (next.auth) setAuth(next.auth)
+    if (next.auth || next.orderCustomerAuth) {
+      setAuth((prev) => {
+        const base = next.auth || prev
+        if (!base && next.orderCustomerAuth) return prev
+        return base ? { ...base, verified: true } : prev
+      })
+    }
   }, [searchParams])
 
   useEffect(() => {
@@ -51,19 +58,46 @@ export function SavoriaGuestProvider({ children }) {
       setSession(stored)
     }
 
-    if (accessToken && reduxUser) {
+    const sessionAuth = stored?.auth
+    if (sessionAuth && (sessionAuth.verified || sessionAuth.verifiedAt || stored?.orderCustomerAuth)) {
+      setAuth({ ...sessionAuth, verified: true })
+      return
+    }
+
+    if (stored?.orderCustomerAuth && stored?.customerTokens?.accessToken) {
+      setAuth({
+        verified: true,
+        phone: sessionAuth?.phone,
+        name: sessionAuth?.name,
+        email: sessionAuth?.email,
+      })
+      return
+    }
+
+    if (accessToken && reduxUser && !isGuestQrOrderFlow(searchParams, location.pathname)) {
       if (stored?.auth) setAuth(stored.auth)
       return
     }
 
-    const guestAuth = stored?.auth
-    if (!accessToken && (guestAuth?.verified || guestAuth?.verifiedAt)) {
-      setAuth(guestAuth)
+    if (accessToken && reduxUser && stored?.orderCustomerAuth) {
+      setAuth({
+        verified: true,
+        name: formatCustomerFullName(reduxUser.name, stored?.auth?.name || ''),
+        phone: reduxUser.phone || stored?.auth?.phone,
+        email: reduxUser.email,
+      })
       return
     }
 
-    setAuth(null)
-  }, [location.pathname, location.search, accessToken, reduxUser])
+    if (!accessToken && (sessionAuth?.verified || sessionAuth?.verifiedAt)) {
+      setAuth(sessionAuth)
+      return
+    }
+
+    if (!stored?.orderCustomerAuth) {
+      setAuth(null)
+    }
+  }, [location.pathname, location.search, accessToken, reduxUser, searchParams])
 
   const persist = useCallback((patch) => {
     const next = patchSavoriaSession(patch)
@@ -83,8 +117,34 @@ export function SavoriaGuestProvider({ children }) {
     [searchParams, location.pathname, session],
   )
 
+  useEffect(() => {
+    if (!isQrTableFlow || !session?.orderCustomerAuth || !session?.customerTokens?.accessToken) return undefined
+    if (auth?.name && !isPlaceholderCustomerName(auth.name)) return undefined
+
+    let cancelled = false
+    authAPI.me()
+      .then(({ data }) => {
+        if (cancelled || !data?.user) return
+        const next = {
+          ...(auth || {}),
+          verified: true,
+          name: formatCustomerFullName(data.user.name, auth?.name),
+          phone: data.user.phone || auth?.phone,
+          email: data.user.email || auth?.email,
+        }
+        if (next.name && isPlaceholderCustomerName(next.name)) delete next.name
+        setAuth(next)
+        patchSavoriaSession({ auth: next })
+        setSession((s) => ({ ...s, auth: next }))
+      })
+      .catch(() => {})
+    return () => { cancelled = true }
+  }, [isQrTableFlow, session?.orderCustomerAuth, session?.customerTokens?.accessToken, auth?.name])
+
   const hasOrderCustomerAuth = Boolean(
-    auth?.verified || auth?.verifiedAt || session?.orderCustomerAuth,
+    (auth?.verified || auth?.verifiedAt)
+    || session?.orderCustomerAuth
+    || (session?.customerTokens?.accessToken && session?.orderCustomerAuth !== false),
   )
 
   const isAuthenticated = useMemo(() => {
@@ -105,23 +165,25 @@ export function SavoriaGuestProvider({ children }) {
 
   const userDisplayName = useMemo(() => {
     if (isQrTableFlow && !hasOrderCustomerAuth) return 'Guest'
+    const authName = auth?.name || session?.auth?.name
     if (customerOnlyIdentity) {
-      return resolveCustomerDisplayName(auth?.name) || ''
+      return resolveCustomerDisplayName(authName) || ''
     }
     const signedIn = Boolean(auth?.verified || auth?.verifiedAt || (accessToken && reduxUser))
-    const resolved = resolveCustomerDisplayName(auth?.name, reduxUser?.name)
+    const resolved = resolveCustomerDisplayName(authName, reduxUser?.name)
     return resolved || (signedIn ? '' : 'Guest')
-  }, [auth, reduxUser, accessToken, isQrTableFlow, hasOrderCustomerAuth, customerOnlyIdentity])
+  }, [auth, session?.auth, reduxUser, accessToken, isQrTableFlow, hasOrderCustomerAuth, customerOnlyIdentity])
 
   const userPhone = useMemo(() => {
     if (isQrTableFlow && !hasOrderCustomerAuth) return ''
+    const authPhone = auth?.phone || session?.auth?.phone
     if (customerOnlyIdentity) {
-      return resolveCustomerPhone(auth?.phone) || ''
+      return resolveCustomerPhone(authPhone) || ''
     }
-    if (auth?.phone) return auth.phone
+    if (authPhone) return authPhone
     if (!isQrTableFlow && reduxUser?.phone) return reduxUser.phone
     return ''
-  }, [auth, reduxUser, isQrTableFlow, hasOrderCustomerAuth, customerOnlyIdentity])
+  }, [auth, session?.auth, reduxUser, isQrTableFlow, hasOrderCustomerAuth, customerOnlyIdentity])
 
   const effectiveAuth = useMemo(() => {
     if (isQrTableFlow && !hasOrderCustomerAuth) return null

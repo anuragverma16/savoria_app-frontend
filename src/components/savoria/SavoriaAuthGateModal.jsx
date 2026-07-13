@@ -253,7 +253,13 @@ export default function SavoriaAuthGateModal({
       email: user?.email,
       restaurantName: user?.restaurant?.name || authPayload?.memberships?.[0]?.restaurant?.name,
       verified: true,
-    }, { skipSuccessCallback: openSuperAdmin })
+    }, {
+      skipSuccessCallback: openSuperAdmin,
+      customerTokens: authPayload?.accessToken ? {
+        accessToken: authPayload.accessToken,
+        refreshToken: authPayload.refreshToken,
+      } : undefined,
+    })
 
     toast.success(`Welcome, ${firstName}!`)
     closeAuthModal()

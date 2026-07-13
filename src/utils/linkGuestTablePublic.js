@@ -55,8 +55,6 @@ export async function linkGuestTableScan(dispatch, { restaurant, table }) {
     tableNumber: table.tableNumber != null ? String(table.tableNumber) : undefined,
     qrLinked: true,
     scanLocked: true,
-    auth: null,
-    orderCustomerAuth: false,
   })
 
   return { booked: true, table: session.table, restaurant }

@@ -22,14 +22,22 @@ export function shouldPreservePanelAuthDuringQrOrder(panelAuth = getStoredPanelA
   return Boolean(panelAuth?.accessToken && isPanelAccountUser(panelAuth.user))
 }
 
-/** Customer JWT stored in savoria session while panel Redux auth stays untouched */
+/** Customer JWT in savoria session — used on /order routes so QR login persists across scans */
 export function getIsolatedOrderCustomerAuth() {
   if (typeof window === 'undefined') return null
   if (!window.location.pathname.startsWith('/order')) return null
 
   const savoria = loadSavoriaSession()
   if (!savoria?.orderCustomerAuth || !savoria?.customerTokens?.accessToken) return null
-  if (!shouldPreservePanelAuthDuringQrOrder()) return null
+
+  const panelAuth = getStoredPanelAuth()
+  if (panelAuth?.accessToken && isPanelAccountUser(panelAuth.user)) {
+    return {
+      accessToken: savoria.customerTokens.accessToken,
+      refreshToken: savoria.customerTokens.refreshToken,
+      restaurantId: savoria.rid ? String(savoria.rid) : null,
+    }
+  }
 
   return {
     accessToken: savoria.customerTokens.accessToken,
