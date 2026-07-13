@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { FiArrowLeft, FiTag, FiUser } from 'react-icons/fi'
+import { FiArrowLeft, FiUser } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
-import { restaurantAPI } from '../../api/dineflow'
-import DineflowUpiPaymentModal from '../../components/dineflow/DineflowUpiPaymentModal'
+import SavoriaRazorpayPaymentModal from '../../components/savoria/SavoriaRazorpayPaymentModal'
 import CustomerOrderSteps from '../../components/savoria/CustomerOrderSteps'
+import MenuPromoCoupons from '../../components/savoria/MenuPromoCoupons'
+import NewCustomerWelcomeOffer from '../../components/savoria/NewCustomerWelcomeOffer'
 import { downloadOrderInvoice } from '../../utils/generateInvoicePdf'
-import { resolveCustomerFullName } from '../../utils/customerDisplayName'
+import { resolveCustomerFullName, resolveCustomerPhone } from '../../utils/customerDisplayName'
 
 const RESUME_PAYMENT_KEY = 'savoria_resume_payment'
 
@@ -20,7 +21,15 @@ export default function SavoriaCheckoutPage() {
     auth,
     restaurant,
     appliedCoupon,
-    setAppliedCoupon,
+    promoCoupons,
+    couponLoading,
+    applyCustomerCoupon,
+    removeCustomerCoupon,
+    welcomeEligible,
+    welcomePercent,
+    welcomeDiscount,
+    canUseCoupons,
+    setPricingPhone,
     placeCustomerOrder,
     verifyUpiPayment,
     paths,
@@ -35,31 +44,33 @@ export default function SavoriaCheckoutPage() {
   const cartPath = withQuery(paths.cart)
 
   const [couponInput, setCouponInput] = useState('')
-  const [couponLoading, setCouponLoading] = useState(false)
-  const [customerName, setCustomerName] = useState(
-    () => resolveCustomerFullName(auth?.name, user?.name),
-  )
-  const [phone, setPhone] = useState(auth?.phone || user?.phone || '')
-  const [showUpiModal, setShowUpiModal] = useState(false)
+  const [customerName, setCustomerName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [placing, setPlacing] = useState(false)
 
   useEffect(() => {
-    const resolved = resolveCustomerFullName(auth?.name, user?.name)
-    if (resolved) setCustomerName(resolved)
-    if (auth?.phone) setPhone(auth.phone)
-  }, [auth, user?.name])
+    if (!isAuthenticated) return
+    const resolvedName = resolveCustomerFullName(auth?.name, user?.name)
+    const resolvedPhone = resolveCustomerPhone(auth?.phone, user?.phone)
+    if (resolvedName) setCustomerName(resolvedName)
+    if (resolvedPhone) setPhone(resolvedPhone)
+  }, [isAuthenticated, auth?.name, auth?.phone, user?.name, user?.phone])
+
+  useEffect(() => {
+    setPricingPhone(phone.trim())
+  }, [phone, setPricingPhone])
 
   useEffect(() => {
     if (!isAuthenticated) return
     if (sessionStorage.getItem(RESUME_PAYMENT_KEY) !== '1') return
     sessionStorage.removeItem(RESUME_PAYMENT_KEY)
-    if (auth?.name) {
-      const resolved = resolveCustomerFullName(auth.name)
-      if (resolved) setCustomerName(resolved)
-    }
-    if (auth?.phone) setPhone(auth.phone)
-    setShowUpiModal(true)
-  }, [isAuthenticated, auth])
+    const resolvedName = resolveCustomerFullName(auth?.name, user?.name)
+    const resolvedPhone = resolveCustomerPhone(auth?.phone, user?.phone)
+    if (resolvedName) setCustomerName(resolvedName)
+    if (resolvedPhone) setPhone(resolvedPhone)
+    setShowPaymentModal(true)
+  }, [isAuthenticated, auth, user?.name, user?.phone])
 
   const applyCoupon = async () => {
     const code = couponInput.trim()
@@ -67,26 +78,21 @@ export default function SavoriaCheckoutPage() {
       toast.error('Enter a coupon code')
       return
     }
-    if (!rid) return
-    setCouponLoading(true)
     try {
-      const { data } = await restaurantAPI(rid).validateCoupon({ code, subtotal: totals.subtotal })
-      setAppliedCoupon(data.coupon)
-      toast.success(`${data.coupon.code} applied`)
+      await applyCustomerCoupon(code)
+      setCouponInput('')
     } catch (e) {
-      setAppliedCoupon(null)
-      toast.error(e.response?.data?.message || 'Invalid coupon')
-    } finally {
-      setCouponLoading(false)
+      toast.error(e.response?.data?.message || e.message || 'Invalid coupon')
     }
   }
 
-  const handlePlaceOrder = async ({ paymentTxnId, paymentProof }) => {
+  const handlePlaceOrder = async ({ paymentTxnId, paymentProof, paymentMethod = 'online' }) => {
     setPlacing(true)
     try {
       const order = await placeCustomerOrder({
         paymentTxnId,
         paymentProof,
+        paymentMethod,
         customerName: customerName.trim(),
         phone: phone.trim(),
         amount: totals.total,
@@ -105,7 +111,7 @@ export default function SavoriaCheckoutPage() {
       throw e
     } finally {
       setPlacing(false)
-      setShowUpiModal(false)
+      setShowPaymentModal(false)
     }
   }
 
@@ -123,7 +129,7 @@ export default function SavoriaCheckoutPage() {
       toast.error('Phone number is required')
       return
     }
-    setShowUpiModal(true)
+    setShowPaymentModal(true)
   }
 
   if (cart.length === 0) {
@@ -213,6 +219,12 @@ export default function SavoriaCheckoutPage() {
               <span className="text-[var(--sv-text-muted)]">GST</span>
               <span>₹{totals.gst}</span>
             </div>
+            {welcomeDiscount > 0 && (
+              <div className="flex justify-between text-sm text-[var(--sv-success)]">
+                <span>New customer ({welcomePercent}% off)</span>
+                <span>-₹{welcomeDiscount}</span>
+              </div>
+            )}
             {appliedCoupon && (
               <div className="flex justify-between text-sm text-[var(--sv-success)]">
                 <span>Coupon ({appliedCoupon.code})</span>
@@ -226,28 +238,29 @@ export default function SavoriaCheckoutPage() {
           </div>
         </section>
 
-        <section className="sv-section-card">
-          <h2 className="sv-section-title">
-            <FiTag size={16} /> Coupon code
-          </h2>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={couponInput}
-              onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-              placeholder="Enter coupon"
-              className="sv-input flex-1"
-            />
-            <button
-              type="button"
-              onClick={applyCoupon}
-              disabled={couponLoading}
-              className="sv-btn-ghost px-4 flex-shrink-0"
-            >
-              {couponLoading ? '…' : 'Apply'}
-            </button>
-          </div>
-        </section>
+        {welcomeEligible && !canUseCoupons ? (
+          <NewCustomerWelcomeOffer
+            welcomePercent={welcomePercent}
+            welcomeDiscount={welcomeDiscount}
+            subtotal={totals.subtotal}
+          />
+        ) : (
+          <MenuPromoCoupons
+            coupons={promoCoupons}
+            subtotal={totals.subtotal}
+            appliedCoupon={appliedCoupon}
+            couponLoading={couponLoading}
+            onApply={applyCustomerCoupon}
+            onRemove={() => {
+              removeCustomerCoupon()
+              toast.success('Coupon removed')
+            }}
+            showManualInput
+            manualCode={couponInput}
+            onManualCodeChange={setCouponInput}
+            onManualApply={applyCoupon}
+          />
+        )}
       </main>
 
       <div className="fixed bottom-0 inset-x-0 sv-sticky-bar sv-sticky-bar--cart md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:bottom-4 md:rounded-2xl">
@@ -257,25 +270,28 @@ export default function SavoriaCheckoutPage() {
           onClick={handlePayClick}
           className="sv-btn-primary w-full py-3.5 disabled:opacity-60"
         >
-          {placing ? 'Processing…' : isAuthenticated ? `Pay ₹${totals.total}` : `Log in to Pay ₹${totals.total}`}
+          {placing ? 'Processing…' : isAuthenticated ? `Pay ₹${totals.total} with Razorpay` : `Log in to Pay ₹${totals.total}`}
         </button>
       </div>
 
-      {showUpiModal && (
-        <DineflowUpiPaymentModal
+      {showPaymentModal && (
+        <SavoriaRazorpayPaymentModal
           amount={totals.total}
-          upiId={restaurant.settings?.upiId}
           payeeName={restaurant.settings?.upiPayeeName || restaurant.name}
           tableNumber={restaurant.tableNumber}
+          customerName={customerName.trim()}
+          customerPhone={phone.trim()}
           items={cart}
           appliedCoupon={appliedCoupon}
           subtotal={totals.subtotal}
           tax={totals.gst}
           serviceCharge={totals.service}
           couponDiscount={appliedCoupon?.discountAmount || appliedCoupon?.amount || 0}
+          welcomeDiscount={welcomeDiscount}
+          welcomePercent={welcomePercent}
           onConfirm={handlePlaceOrder}
           onVerify={verifyUpiPayment}
-          onClose={() => setShowUpiModal(false)}
+          onClose={() => setShowPaymentModal(false)}
           placing={placing}
         />
       )}

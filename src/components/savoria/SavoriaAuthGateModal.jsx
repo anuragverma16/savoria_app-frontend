@@ -10,9 +10,13 @@ import { hydrateTenantAfterAuth } from '../../utils/panelRole'
 import { resetPageLocks } from '../../utils/resetPageLocks'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import { loadSavoriaSession } from '../../utils/savoriaGuestSession'
-import { hasScanParams } from '../../utils/scanLink'
+import { isGuestQrOrderFlow } from '../../utils/scanLink'
 import { syncGuestOrderSessionAfterAuth } from '../../utils/syncGuestOrderSession'
 import { formatCustomerFirstName } from '../../utils/customerDisplayName'
+import {
+  getStoredPanelAuth,
+  shouldPreservePanelAuthDuringQrOrder,
+} from '../../utils/panelAuthPreserve'
 import BrandMark from '../dineflow/BrandMark'
 import BrandLogo from '../dineflow/BrandLogo'
 import SavoriaAuthPanel from './SavoriaAuthPanel'
@@ -134,11 +138,14 @@ export default function SavoriaAuthGateModal({
     const savoriaSession = loadSavoriaSession()
     const onOrderPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/order')
     const inQrTableOrder = Boolean(
-      savoriaSession?.scanLocked
-      && savoriaSession?.qrLinked
-      && onOrderPath
-      && (hasScanParams(new URLSearchParams(window.location.search)) || window.location.pathname.includes('/order/menu')),
+      onOrderPath
+      && isGuestQrOrderFlow(
+        new URLSearchParams(window.location.search),
+        window.location.pathname,
+      ),
     )
+    const panelAuth = getStoredPanelAuth()
+    const preservePanel = inQrTableOrder && shouldPreservePanelAuthDuringQrOrder(panelAuth)
     let openSuperAdmin = Boolean(result?.isSuperAdmin)
       || shouldOpenSuperAdminPanel(user, phoneHint)
     if (inQrTableOrder) openSuperAdmin = false
@@ -146,6 +153,43 @@ export default function SavoriaAuthGateModal({
     const scannedRid = savoriaSession?.rid
 
     superAdminLoginRef.current = openSuperAdmin
+
+    if (preservePanel && authPayload?.accessToken) {
+      completeAuth({
+        name: user?.name,
+        phone: user?.phone || phoneHint,
+        email: user?.email,
+        restaurantName: user?.restaurant?.name
+          || authPayload?.memberships?.[0]?.restaurant?.name
+          || savoriaSession?.restaurantName,
+        verified: true,
+      }, {
+        customerTokens: {
+          accessToken: authPayload.accessToken,
+          refreshToken: authPayload.refreshToken,
+        },
+      })
+
+      await syncGuestOrderSessionAfterAuth(dispatch, {
+        user: authPayload.user,
+        memberships: authPayload.memberships,
+      }, { preserveTenant: true })
+
+      const firstName = formatCustomerFirstName(user?.name, 'there')
+      toast.success(`Welcome, ${firstName}!`)
+      closeAuthModal()
+      onClose()
+
+      if (redirectPath?.startsWith('/order')) {
+        navigate(redirectPath, { replace: true })
+        return
+      }
+      if (redirectPath) {
+        navigate(redirectPath)
+        return
+      }
+      return
+    }
 
     if (authPayload?.accessToken) {
       const apiUser = openSuperAdmin

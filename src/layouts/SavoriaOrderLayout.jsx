@@ -11,6 +11,7 @@ import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
 import { useOrderPanelQuery } from '../hooks/useOrderPanelQuery'
 import { useTableSessionGuard } from '../hooks/useTableSessionGuard'
 import { navigateHomeAfterLogout } from '../utils/authEntry'
+import { shouldPreservePanelAuthDuringQrOrder } from '../utils/panelAuthPreserve'
 import toast from 'react-hot-toast'
 
 function OrderShell() {
@@ -33,9 +34,12 @@ function OrderShell() {
   })
 
   const handleLogout = () => {
+    const keepPanel = shouldPreservePanelAuthDuringQrOrder()
     logoutGuest()
-    toast.success('Signed out')
-    navigateHomeAfterLogout(navigate)
+    toast.success(keepPanel ? 'Order account signed out' : 'Signed out')
+    if (!keepPanel && !isQrTableFlow) {
+      navigateHomeAfterLogout(navigate)
+    }
   }
 
   const restaurantLabel = activeRestaurant?.name || session?.restaurantName || 'Savoria'

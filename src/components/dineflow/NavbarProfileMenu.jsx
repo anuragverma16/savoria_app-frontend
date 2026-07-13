@@ -10,6 +10,7 @@ import {
   getNavbarSettingsPath,
   navigateToProfileDashboard,
 } from '../../utils/panelRole'
+import { isPanelAccountUser } from '../../utils/panelAuthPreserve'
 
 export default function NavbarProfileMenu({
   profileName,
@@ -27,7 +28,10 @@ export default function NavbarProfileMenu({
   const guestAuth = useSavoriaGuestOptional()
   const savoriaAuth = loadSavoriaSession()?.auth
   const { user, memberships, accessToken, refreshToken } = useSelector((s) => s.auth)
-  const phoneHint = user?.phone || guestAuth?.auth?.phone || savoriaAuth?.phone
+  const panelAccount = Boolean(accessToken && user && isPanelAccountUser(user))
+  const phoneHint = panelAccount
+    ? user?.phone
+    : (user?.phone || guestAuth?.auth?.phone || savoriaAuth?.phone)
   const settingsPath = getNavbarSettingsPath(user, memberships, phoneHint)
 
   const close = useCallback(() => {
@@ -55,7 +59,7 @@ export default function NavbarProfileMenu({
 
   const handleLogout = () => {
     close()
-    guestAuth?.logoutGuest()
+    guestAuth?.logoutGuest({ full: panelAccount })
     navigateHomeAfterLogout(navigate)
   }
 

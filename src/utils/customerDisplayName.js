@@ -41,3 +41,11 @@ export function resolveCustomerFullName(...sources) {
   }
   return ''
 }
+
+export function resolveCustomerPhone(...sources) {
+  for (const source of sources) {
+    const digits = String(source || '').replace(/\D/g, '')
+    if (digits.length >= 10) return String(source).trim()
+  }
+  return ''
+}

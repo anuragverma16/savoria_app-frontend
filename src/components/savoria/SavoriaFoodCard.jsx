@@ -1,15 +1,36 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import OptimizedImage from '../OptimizedImage'
-import { FiStar, FiPlus, FiChevronDown, FiChevronUp } from 'react-icons/fi'
+import { FiStar, FiPlus, FiMinus, FiChevronDown, FiChevronUp } from 'react-icons/fi'
 import { GiChiliPepper } from 'react-icons/gi'
 import { SV_INGREDIENT_CHIP_CLASS, SV_INGREDIENT_CHIP_CLASS_SM } from '../../data/menuCardGradients'
+import { formatMenuRating } from '../../utils/menuRating'
 
-export default function SavoriaFoodCard({ item, onSelect, onQuickAdd }) {
+export default function SavoriaFoodCard({
+  item,
+  cartQty = 0,
+  onQuickAdd,
+  onUpdateQty,
+}) {
   const [showIngredients, setShowIngredients] = useState(false)
   const unavailable = item.isAvailable === false
   const hasIngredients = Boolean(item.ingredients?.length)
   const prepLabel = String(item.prepTime || '').includes('min') ? item.prepTime : `${item.prepTime} min`
+  const ratingDisplay = item.hasReviews
+    ? formatMenuRating(item.ratingAverage, item.ratingCount)
+    : null
+
+  const handleMinus = (e) => {
+    e.stopPropagation()
+    if (cartQty > 0) onUpdateQty?.(item, cartQty - 1)
+  }
+
+  const handlePlus = (e) => {
+    e.stopPropagation()
+    if (unavailable) return
+    if (cartQty > 0) onUpdateQty?.(item, cartQty + 1)
+    else onQuickAdd?.(item)
+  }
 
   return (
     <motion.article
@@ -17,10 +38,9 @@ export default function SavoriaFoodCard({ item, onSelect, onQuickAdd }) {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
-      className={`sv-food-card group cursor-pointer ${unavailable ? 'opacity-70' : ''}`}
-      onClick={() => onSelect(item)}
+      className={`sv-food-card group ${unavailable ? 'opacity-70' : ''} ${cartQty > 0 ? 'ring-1 ring-[var(--sv-accent)]/25' : ''}`}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden pointer-events-none select-none">
         <OptimizedImage
           src={item.image}
           alt={item.name}
@@ -35,20 +55,21 @@ export default function SavoriaFoodCard({ item, onSelect, onQuickAdd }) {
         {item.tags?.[0] && (
           <span className="absolute top-3 left-3 sv-badge">{item.tags[0]}</span>
         )}
-        {item.spicy && (
+        {cartQty > 0 && (
+          <span className="absolute top-3 right-3 min-w-[1.5rem] h-7 px-2 rounded-full bg-[var(--sv-accent)] text-[#1a1510] text-xs font-bold flex items-center justify-center shadow-md">
+            {cartQty}
+          </span>
+        )}
+        {item.spicy && !cartQty && (
           <span className="absolute top-3 right-3 w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center">
             <GiChiliPepper className="text-white" size={14} />
           </span>
         )}
-        <button
-          type="button"
-          disabled={unavailable}
-          onClick={(e) => { e.stopPropagation(); if (!unavailable) onQuickAdd?.(item) }}
-          className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-[var(--sv-accent)] text-[#1a1510] flex items-center justify-center sv-quick-add opacity-100 md:opacity-0 md:translate-y-2 md:group-hover:opacity-100 md:group-hover:translate-y-0 transition-all shadow-lg"
-          aria-label={`Add ${item.name}`}
-        >
-          <FiPlus size={18} />
-        </button>
+        {item.spicy && cartQty > 0 && (
+          <span className="absolute top-12 right-3 w-7 h-7 rounded-full bg-red-500/90 flex items-center justify-center">
+            <GiChiliPepper className="text-white" size={14} />
+          </span>
+        )}
       </div>
       <div className="p-4">
         <div className="flex items-start justify-between gap-2 mb-1">
@@ -105,13 +126,56 @@ export default function SavoriaFoodCard({ item, onSelect, onQuickAdd }) {
             )}
           </div>
         )}
-        <div className="flex items-center gap-2 text-xs text-[var(--sv-text-muted)]">
-          <span className="flex items-center gap-0.5 text-amber-500">
-            <FiStar size={12} fill="currentColor" />
-            {item.rating}
-          </span>
-          <span>·</span>
-          <span>{prepLabel}</span>
+        <div className="flex items-center justify-between gap-2 mt-1">
+          <div className="flex items-center gap-2 text-xs text-[var(--sv-text-muted)] min-w-0">
+            {ratingDisplay?.hasReviews ? (
+              <>
+                <span className="flex items-center gap-0.5 text-amber-500 shrink-0">
+                  <FiStar size={12} fill="currentColor" />
+                  {ratingDisplay.label}
+                </span>
+                <span className="text-[10px] shrink-0">({ratingDisplay.count})</span>
+                <span>·</span>
+              </>
+            ) : null}
+            <span>{prepLabel}</span>
+          </div>
+
+          {!unavailable && (
+            cartQty > 0 ? (
+              <div
+                className="flex items-center gap-0.5 bg-[var(--sv-accent-glow)] border border-[var(--sv-accent)]/30 rounded-xl p-0.5 shrink-0"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={handleMinus}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--sv-text)] hover:bg-[var(--sv-accent)]/15"
+                  aria-label="Decrease quantity"
+                >
+                  <FiMinus size={15} />
+                </button>
+                <span className="w-7 text-center text-sm font-bold text-[var(--sv-accent)]">{cartQty}</span>
+                <button
+                  type="button"
+                  onClick={handlePlus}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--sv-text)] hover:bg-[var(--sv-accent)]/15"
+                  aria-label="Increase quantity"
+                >
+                  <FiPlus size={15} />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onQuickAdd?.(item) }}
+                className="w-9 h-9 rounded-xl bg-[var(--sv-accent)] text-[#1a1510] flex items-center justify-center shrink-0 shadow-md hover:scale-105 transition-transform"
+                aria-label={`Add ${item.name}`}
+              >
+                <FiPlus size={18} />
+              </button>
+            )
+          )}
         </div>
       </div>
     </motion.article>

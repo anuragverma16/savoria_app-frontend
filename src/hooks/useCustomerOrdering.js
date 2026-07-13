@@ -17,6 +17,7 @@ import { loadSavoriaSession, appendSavoriaSessionOrder, patchSavoriaSession } fr
 import { mapCustomerMenuItem, mapCustomerOrder } from '../utils/mapCustomerMenuItem'
 import { getCartRestaurantConflict } from '../utils/cartRestaurantConflict'
 import { useCustomerPaths } from './useCustomerPaths'
+import { filterActiveCoupons } from '../utils/couponDisplay'
 
 /** Keep orders scoped to the scanned restaurant + table */
 function filterOrdersForScan(orders, { rid, tableId, tableNumber }) {
@@ -38,7 +39,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   const cartState = useSelector((s) => s.cart)
   const { items, table, tableToken } = cartState
   const { subtotal, itemCount } = useSelector(selectCartTotal)
-  const { user } = useSelector((s) => s.auth)
+  const { user, accessToken } = useSelector((s) => s.auth)
 
   const [categories, setCategories] = useState([])
   const [menuItems, setMenuItems] = useState([])
@@ -49,6 +50,11 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   const [orders, setOrders] = useState([])
   const [ordersLoading, setOrdersLoading] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [promoCoupons, setPromoCoupons] = useState([])
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [checkoutPreview, setCheckoutPreview] = useState(null)
+  const [offerStatus, setOfferStatus] = useState(null)
+  const [pricingPhone, setPricingPhone] = useState('')
   const [lastPlacedOrderId, setLastPlacedOrderId] = useState(null)
   const [switchPrompt, setSwitchPrompt] = useState(null)
 
@@ -59,12 +65,28 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   const rid = session?.rid || activeRestaurant?._id || urlRid || null
   const tableId = session?.tableId || urlTableId || null
   const tableNumber = session?.tableNumber || session?.table?.tableNumber || urlTableNo || null
+  const customerPhone = pricingPhone || session?.auth?.phone || user?.phone || ''
   const gstRate = settings?.taxRate ?? activeRestaurant?.settings?.taxRate ?? 5
   const serviceRate = settings?.serviceCharge ?? activeRestaurant?.settings?.serviceCharge ?? 0
-  const gst = Math.round(subtotal * gstRate / 100)
-  const service = Math.round(subtotal * serviceRate / 100)
-  const discount = appliedCoupon?.discountAmount || appliedCoupon?.amount || 0
-  const total = Math.max(0, subtotal + gst + service - discount)
+
+  const orderItemsPayload = useMemo(() => items.map((i) => ({
+    menuItem: i.menuItem,
+    name: i.name,
+    price: i.price,
+    qty: i.qty,
+    image: i.image,
+  })), [items])
+
+  const offerResolved = Boolean(checkoutPreview || offerStatus)
+  const welcomeEligible = checkoutPreview?.welcomeEligible ?? offerStatus?.welcomeEligible ?? !offerResolved
+  const canUseCoupons = checkoutPreview?.canUseCoupons ?? offerStatus?.canUseCoupons ?? false
+  const welcomePercent = checkoutPreview?.welcomePercent ?? offerStatus?.welcomePercent ?? 40
+  const welcomeDiscount = checkoutPreview?.welcomeDiscount ?? offerStatus?.welcomeDiscount ?? 0
+  const couponDiscount = checkoutPreview?.couponDiscount ?? appliedCoupon?.discountAmount ?? appliedCoupon?.amount ?? 0
+  const gst = checkoutPreview?.gst ?? checkoutPreview?.tax ?? Math.round(subtotal * gstRate / 100)
+  const service = checkoutPreview?.serviceCharge ?? Math.round(subtotal * serviceRate / 100)
+  const discount = checkoutPreview?.discount ?? couponDiscount + welcomeDiscount
+  const total = checkoutPreview?.total ?? Math.max(0, subtotal + gst + service - discount)
 
   const restaurant = useMemo(() => ({
     _id: rid,
@@ -116,9 +138,11 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     gst,
     service,
     discount,
+    couponDiscount,
+    welcomeDiscount,
     total,
     itemCount,
-  }), [subtotal, gst, service, discount, total, itemCount])
+  }), [subtotal, gst, service, discount, couponDiscount, welcomeDiscount, total, itemCount])
 
   const loadMenu = useCallback(async () => {
     const scopeRid = rid || urlRid
@@ -144,6 +168,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
         setMenuItems(data.menuItems || [])
         setSettings(restaurantData.settings || {})
         setRestaurantMeta(restaurantData)
+        setPromoCoupons(filterActiveCoupons(data.promoCoupons || []))
         return
       }
 
@@ -157,6 +182,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
       setMenuItems(data.menuItems || [])
       setSettings(data.restaurant?.settings || {})
       setRestaurantMeta(data.restaurant || null)
+      setPromoCoupons(filterActiveCoupons(data.promoCoupons || []))
     } catch {
       setMenuError('Could not load menu. Please try again.')
       setCategories([])
@@ -215,6 +241,111 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   useEffect(() => {
     refreshOrders()
   }, [refreshOrders])
+
+  useEffect(() => {
+    if (!rid) return undefined
+    let cancelled = false
+    publicAPI.getCustomerOffer({
+      restaurantId: rid,
+      phone: customerPhone,
+      subtotal,
+    })
+      .then(({ data }) => {
+        if (!cancelled) setOfferStatus(data.offer || null)
+      })
+      .catch(() => {
+        if (!cancelled) setOfferStatus(null)
+      })
+    return () => { cancelled = true }
+  }, [rid, customerPhone, subtotal])
+
+  useEffect(() => {
+    if (!rid || !items.length) {
+      setCheckoutPreview(null)
+      return undefined
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      const payload = {
+        phone: customerPhone,
+        couponCode: appliedCoupon?.code,
+        items: orderItemsPayload,
+      }
+      const request = accessToken && isAuthenticated
+        ? restaurantAPI(rid).previewCheckout(payload)
+        : publicAPI.previewCheckout({ ...payload, restaurantId: rid })
+
+      request
+        .then(({ data }) => {
+          if (!cancelled) setCheckoutPreview(data.preview || null)
+        })
+        .catch(() => {
+          if (!cancelled) setCheckoutPreview(null)
+        })
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [rid, items.length, customerPhone, appliedCoupon?.code, accessToken, isAuthenticated, orderItemsPayload])
+
+  useEffect(() => {
+    if (welcomeEligible && appliedCoupon) {
+      setAppliedCoupon(null)
+    }
+  }, [welcomeEligible, appliedCoupon])
+
+  const applyCustomerCoupon = useCallback(async (code) => {
+    const trimmed = String(code || '').trim().toUpperCase()
+    if (!trimmed) throw new Error('Enter a coupon code')
+    if (!rid) throw new Error('Restaurant not linked')
+    if (!subtotal) throw new Error('Add items before applying a coupon')
+    if (!canUseCoupons) {
+      throw new Error('New customers get 40% off automatically — coupon codes are for returning customers')
+    }
+
+    setCouponLoading(true)
+    try {
+      const payload = { code: trimmed, subtotal, phone: customerPhone }
+      const { data } = accessToken && isAuthenticated
+        ? await restaurantAPI(rid).validateCoupon(payload)
+        : await publicAPI.validateCoupon({ ...payload, restaurantId: rid })
+      setAppliedCoupon(data.coupon)
+      return data.coupon
+    } finally {
+      setCouponLoading(false)
+    }
+  }, [rid, subtotal, customerPhone, accessToken, isAuthenticated, canUseCoupons])
+
+  const removeCustomerCoupon = useCallback(() => {
+    setAppliedCoupon(null)
+  }, [])
+
+  useEffect(() => {
+    if (!appliedCoupon) return
+    if (!filterActiveCoupons([appliedCoupon]).length) {
+      setAppliedCoupon(null)
+    }
+  }, [appliedCoupon])
+
+  useEffect(() => {
+    if (!appliedCoupon?.code || !rid || !subtotal || !canUseCoupons) return undefined
+    let cancelled = false
+    const payload = { code: appliedCoupon.code, subtotal, phone: customerPhone }
+    const request = accessToken && isAuthenticated
+      ? restaurantAPI(rid).validateCoupon(payload)
+      : publicAPI.validateCoupon({ ...payload, restaurantId: rid })
+
+    request
+      .then(({ data }) => {
+        if (!cancelled) setAppliedCoupon(data.coupon)
+      })
+      .catch(() => {
+        if (!cancelled) setAppliedCoupon(null)
+      })
+
+    return () => { cancelled = true }
+  }, [appliedCoupon?.code, rid, subtotal, customerPhone, accessToken, isAuthenticated, canUseCoupons])
 
   useEffect(() => {
     if (!rid) return
@@ -284,6 +415,7 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
   const placeCustomerOrder = useCallback(async ({
     paymentTxnId,
     paymentProof,
+    paymentMethod = 'online',
     customerName,
     phone,
     couponCode,
@@ -318,8 +450,12 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     }
     fd.append('paymentTxnId', paymentTxnId)
     fd.append('paymentProof', paymentProof)
+    fd.append('paymentMethod', paymentMethod || 'online')
     fd.append('amount', String(amount ?? total))
     if (couponCode || appliedCoupon?.code) {
+      if (!canUseCoupons) {
+        throw new Error('New customers get 40% off automatically')
+      }
       fd.append('couponCode', couponCode || appliedCoupon.code)
     }
     if (specialInstructions) fd.append('specialInstructions', specialInstructions)
@@ -332,12 +468,18 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     setLastPlacedOrderId(mapped?.id || mapped?.orderId)
     await refreshOrders()
     return mapped
-  }, [rid, items, tableToken, table, session?.tableId, session?.tableNumber, total, appliedCoupon, dispatch, refreshOrders])
+  }, [rid, items, tableToken, table, session?.tableId, session?.tableNumber, total, appliedCoupon, canUseCoupons, dispatch, refreshOrders])
 
-  const verifyUpiPayment = useCallback(async ({ paymentTxnId, paymentProof, amount }) => {
+  const verifyUpiPayment = useCallback(async ({
+    paymentTxnId,
+    paymentProof,
+    amount,
+    paymentMethod = 'online',
+  }) => {
     const fd = new FormData()
     fd.append('paymentTxnId', paymentTxnId)
     fd.append('paymentProof', paymentProof)
+    fd.append('paymentMethod', paymentMethod || 'online')
     fd.append('amount', String(amount ?? total))
     fd.append('items', JSON.stringify(items.map((i) => ({
       menuItem: i.menuItem,
@@ -371,6 +513,16 @@ export function useCustomerOrdering({ session, refreshSession, isAuthenticated }
     clearCustomerCart,
     appliedCoupon,
     setAppliedCoupon,
+    promoCoupons,
+    couponLoading,
+    applyCustomerCoupon,
+    removeCustomerCoupon,
+    welcomeEligible,
+    welcomePercent,
+    welcomeDiscount,
+    canUseCoupons,
+    checkoutPreview,
+    setPricingPhone,
     placeCustomerOrder,
     verifyUpiPayment,
     orders,

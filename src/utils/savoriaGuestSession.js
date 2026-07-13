@@ -72,6 +72,7 @@ export function initSavoriaSessionFromParams(searchParams) {
     cart: isNewTableScan ? [] : (existing.cart || []),
     auth: isNewTableScan ? null : (existing.auth || null),
     orderCustomerAuth: isNewTableScan ? false : Boolean(existing.orderCustomerAuth),
+    customerTokens: isNewTableScan ? null : (existing.customerTokens || null),
     orders: isNewTableScan ? [] : (existing.orders || []),
     scanLocked: isNewTableScan ? false : (existing.scanLocked || false),
     qrLinked: Boolean((rid || existing.rid) && (tableId || existing.tableId)),

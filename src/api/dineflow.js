@@ -1,4 +1,6 @@
 import axios from 'axios'
+import { patchSavoriaSession } from '../utils/savoriaGuestSession'
+import { getIsolatedOrderCustomerAuth } from '../utils/panelAuthPreserve'
 
 const PRODUCTION_API_ORIGIN = 'https://savoriabackend.sengarinfotech.com'
 
@@ -35,7 +37,19 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
+  if (config._skipAuthIsolation) return config
+
+  const isolated = getIsolatedOrderCustomerAuth()
   const auth = JSON.parse(localStorage.getItem('dineflow_auth') || '{}')
+
+  if (isolated?.accessToken) {
+    config.headers.Authorization = `Bearer ${isolated.accessToken}`
+    if (isolated.restaurantId) {
+      config.headers['X-Restaurant-Id'] = isolated.restaurantId
+    }
+    return config
+  }
+
   if (auth.accessToken) {
     config.headers.Authorization = `Bearer ${auth.accessToken}`
   }
@@ -61,11 +75,42 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
+      const isolated = getIsolatedOrderCustomerAuth()
+      if (isolated?.refreshToken && !error.config._customerRetry) {
+        error.config._customerRetry = true
+        try {
+          const { data } = await api.post(
+            '/auth/refresh',
+            { refreshToken: isolated.refreshToken },
+            { _skipAuthIsolation: true },
+          )
+          patchSavoriaSession({
+            customerTokens: {
+              accessToken: data.accessToken,
+              refreshToken: data.refreshToken,
+            },
+          })
+          error.config.headers = error.config.headers || {}
+          error.config.headers.Authorization = `Bearer ${data.accessToken}`
+          return api(error.config)
+        } catch {
+          patchSavoriaSession({
+            auth: null,
+            orderCustomerAuth: false,
+            customerTokens: null,
+          })
+        }
+      }
+
       const auth = JSON.parse(localStorage.getItem('dineflow_auth') || '{}')
       if (auth.refreshToken && !error.config._retry) {
         error.config._retry = true
         try {
-          const { data } = await api.post('/auth/refresh', { refreshToken: auth.refreshToken })
+          const { data } = await api.post(
+            '/auth/refresh',
+            { refreshToken: auth.refreshToken },
+            { _skipAuthIsolation: true },
+          )
           localStorage.setItem('dineflow_auth', JSON.stringify({
             ...auth,
             accessToken: data.accessToken,
@@ -138,11 +183,15 @@ export const publicAPI = {
   resolveTableBySlugNumber: (slug, tableNumber) => api.get(`/public/${slug}/t/${encodeURIComponent(tableNumber)}`),
   getTables: (slug) => api.get(`/public/${slug}/tables`),
   getMenu: (slug) => api.get(`/public/${slug}/menu`),
+  validateCoupon: (data) => api.post('/public/coupons/validate', data),
   getPopularItems: (slug) => api.get(`/public/${slug}/popular-items`),
   placeOrder: (slug, data) => api.post(`/public/${slug}/orders`, data),
   trackOrder: (orderId) => api.get(`/public/orders/${orderId}/track`),
   submitContact: (data) => api.post('/public/contact', data),
   getPlatformStats: () => api.get('/public/stats'),
+  getMenuReviews: (params) => api.get('/public/scan/menu-reviews', { params }),
+  previewCheckout: (data) => api.post('/public/checkout-preview', data),
+  getCustomerOffer: (params) => api.get('/public/customer-offer', { params }),
 }
 
 export const restaurantAPI = (restaurantId) => ({
@@ -210,6 +259,8 @@ export const restaurantAPI = (restaurantId) => ({
   createStaff: (data) => api.post(`/restaurants/${restaurantId}/staff`, data),
   updateStaff: (membershipId, data) => api.patch(`/restaurants/${restaurantId}/staff/${membershipId}`, data),
   removeStaff: (membershipId) => api.delete(`/restaurants/${restaurantId}/staff/${membershipId}`),
+  getMenuReviews: () => api.get(`/restaurants/${restaurantId}/menu-reviews`),
+  submitMenuReview: (data) => api.post(`/restaurants/${restaurantId}/menu-reviews`, data),
 })
 
 export default api

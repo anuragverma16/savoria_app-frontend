@@ -6,7 +6,11 @@ import { linkTableFromQr } from './linkTableFromQr'
 import { normalizeRestaurant, restaurantIdOf } from './panelRole'
 
 /** After OTP login, align tenant + server table session and restore guest cart. */
-export async function syncGuestOrderSessionAfterAuth(dispatch, { user, memberships } = {}) {
+export async function syncGuestOrderSessionAfterAuth(
+  dispatch,
+  { user, memberships } = {},
+  { preserveTenant = false } = {},
+) {
   const session = loadSavoriaSession() || {}
   const rid = session.rid
   if (!rid) return { synced: false }
@@ -21,7 +25,7 @@ export async function syncGuestOrderSessionAfterAuth(dispatch, { user, membershi
       name: session.restaurantName,
     }
 
-  if (restaurant?._id) {
+  if (restaurant?._id && !preserveTenant) {
     dispatch(setActiveRestaurant(restaurant))
   }
 

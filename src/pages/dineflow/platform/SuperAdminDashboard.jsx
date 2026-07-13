@@ -148,7 +148,7 @@ export default function SuperAdminDashboard() {
     }
   }
 
-  const enterRestaurant = (restaurant, panelId = 'user') => {
+  const enterRestaurant = (restaurant, panelId = 'admin') => {
     const allowed = getSuperAdminPreviewPanels(restaurant)
     const targetPanel = allowed.includes(panelId) ? panelId : (allowed[0] || 'user')
     const panel = PANELS.find((p) => p.id === targetPanel) || PANELS.find((p) => p.id === 'user')

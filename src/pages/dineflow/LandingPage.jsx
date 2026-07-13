@@ -152,7 +152,7 @@ export default function LandingPage() {
       <SiteNavbar variant="dark" />
       <div ref={pageRef} className="df-page lp-landing flex flex-col min-h-screen overflow-x-hidden">
         {/* HERO */}
-        <section className="lp-hero relative min-h-[100svh] flex items-center overflow-hidden">
+        <section className="lp-hero relative min-h-[100svh] flex flex-col overflow-hidden">
           <div className="absolute inset-0 pointer-events-none">
             <HdImg
               src={FOOD.hero}
@@ -168,15 +168,15 @@ export default function LandingPage() {
             <div className="lp-orb w-96 h-96 bg-amber-500/15 bottom-0 left-[-10%]" />
           </div>
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-5 pt-24 sm:pt-28 pb-12 sm:pb-16 lg:pb-24">
-            <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-center">
-              <div className="lg:col-span-7">
-                <div className="lp-hero-badge inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md mb-6 sm:mb-8 max-w-full">
+          <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-5 flex-1 flex flex-col justify-between lg:justify-center pt-[max(4.75rem,calc(env(safe-area-inset-top)+3.5rem))] pb-[max(1rem,env(safe-area-inset-bottom))] lg:pt-28 lg:pb-24">
+            <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-center flex-1 lg:flex-none">
+              <div className="lg:col-span-7 flex flex-col justify-center">
+                <div className="lp-hero-badge inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md mb-4 sm:mb-8 max-w-full">
                   <SpoonLogo size={28} />
                   <span className="text-[10px] sm:text-xs font-bold uppercase tracking-[0.18em] sm:tracking-[0.28em] text-amber-300 truncate">Savoria SaaS · Restaurant OS</span>
                 </div>
 
-                <h1 className="lp-brand-title text-white mb-6">
+                <h1 className="lp-brand-title text-white mb-4 sm:mb-6">
                   <span className="lp-split-line block text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold leading-[1.02]">
                     The restaurant platform
                   </span>
@@ -187,7 +187,7 @@ export default function LandingPage() {
                   </span>
                 </h1>
 
-                <p className="lp-hero-sub text-lg sm:text-xl text-white/70 max-w-xl leading-relaxed mb-10">
+                <p className="lp-hero-sub text-lg sm:text-xl text-white/70 max-w-xl leading-relaxed mb-6 sm:mb-10">
                   Pizza, burgers, noodles & more — run orders, kitchen, staff and analytics from one cinematic dashboard.
                 </p>
 
@@ -226,6 +226,28 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div className="lg:hidden mt-5 sm:mt-6 grid grid-cols-3 gap-2 sm:gap-3 lp-hero-chips-mobile shrink-0">
+              {HERO_CHIPS.map((chip) => (
+                <div
+                  key={`mobile-${chip.label}`}
+                  className={`lp-hero-chip-mobile ${chip.png ? 'lp-hero-chip--png' : ''} ${chip.portrait ? 'lp-hero-chip--portrait' : ''}`}
+                >
+                  <HdImg
+                    src={chip.src}
+                    alt={chip.label}
+                    className={`lp-gallery-img ${
+                      chip.png
+                        ? 'lp-gallery-img--contain'
+                        : chip.portrait
+                          ? 'lp-gallery-img--portrait'
+                          : ''
+                    }`}
+                  />
+                  <span className="lp-hero-chip-mobile-label">{chip.label}</span>
+                </div>
+              ))}
             </div>
           </div>
         </section>

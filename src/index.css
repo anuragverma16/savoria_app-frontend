@@ -1332,6 +1332,37 @@ select option { background-color: #fff; color: #0a0a0a; }
 .lp-gallery-cell--portrait {
   background: #0a0f1a;
 }
+
+.lp-hero-chips-mobile {
+  width: 100%;
+}
+
+.lp-hero-chip-mobile {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  min-height: 7.5rem;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+}
+
+.lp-hero-chip-mobile-label {
+  position: absolute;
+  bottom: 0.35rem;
+  left: 0.35rem;
+  right: 0.35rem;
+  text-align: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  padding: 0.25rem 0.35rem;
+  border-radius: 0.45rem;
+}
 .lp-spotlight-video {
   background: #0a0f1a;
 }
@@ -2099,6 +2130,11 @@ body.sv-scanner-open {
 }
 
 @media (max-width: 639px) {
+  .lp-hero {
+    min-height: 100dvh;
+    min-height: 100svh;
+  }
+
   .lp-hero .lp-split-line {
     font-size: clamp(1.65rem, 7.5vw, 2.35rem) !important;
     line-height: 1.08 !important;

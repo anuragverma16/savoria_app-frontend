@@ -1,10 +1,12 @@
+import { useEffect } from 'react'
 import { Outlet, Link, NavLink, useNavigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useDispatch, useSelector } from 'react-redux'
 import { FiHome, FiLogOut, FiShield, FiGrid, FiSettings } from 'react-icons/fi'
 import ThemeToggle from '../components/dineflow/ThemeToggle'
 import BrandLogo from '../components/dineflow/BrandLogo'
 import BrandMark from '../components/dineflow/BrandMark'
 import { useSavoriaGuest } from '../contexts/SavoriaGuestContext'
+import { clearTenant } from '../store/slices/tenantSlice'
 
 const NAV = [
   { to: '/platform', label: 'Dashboard', icon: FiGrid, end: true },
@@ -35,12 +37,17 @@ function SidebarFooter({ onLogout }) {
 }
 
 export default function PlatformLayout() {
+  const dispatch = useDispatch()
   const navigate = useNavigate()
   const { user } = useSelector((s) => s.auth)
   const { logoutGuest } = useSavoriaGuest()
 
+  useEffect(() => {
+    dispatch(clearTenant())
+  }, [dispatch])
+
   const handleLogout = () => {
-    logoutGuest()
+    logoutGuest({ full: true })
     navigate('/', { replace: true })
   }
 

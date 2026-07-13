@@ -6,21 +6,28 @@ import { SV_INGREDIENT_CHIP_CLASS } from '../../data/menuCardGradients'
 import OptimizedImage from '../OptimizedImage'
 import toast from 'react-hot-toast'
 
-export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
+export default function SavoriaFoodDetailModal({
+  item, open, onClose, onAdd, cartQty = 0, onUpdateQty,
+}) {
   const [qty, setQty] = useState(1)
   const modalRef = useRef(null)
 
   useEffect(() => {
-    if (open) setQty(1)
-  }, [open, item?.id])
+    if (open) setQty(Math.max(1, cartQty || 1))
+  }, [open, item?.id, cartQty])
 
   const handleAdd = () => {
     if (item.isAvailable === false) {
       toast.error(`${item.name} is currently unavailable`)
       return
     }
-    onAdd(item, qty)
-    toast.success(`${item.name} added to cart`)
+    if (cartQty > 0 && onUpdateQty) {
+      onUpdateQty(item, qty)
+      toast.success(`Updated ${item.name} in cart`)
+    } else {
+      onAdd(item, qty)
+      toast.success(`${item.name} added to cart`)
+    }
     onClose()
   }
 
@@ -118,7 +125,11 @@ export default function SavoriaFoodDetailModal({ item, open, onClose, onAdd }) {
                     disabled={item.isAvailable === false}
                     className="sv-btn-primary flex-1 disabled:opacity-50"
                   >
-                    {item.isAvailable === false ? 'Unavailable' : `Add · ₹${item.price * qty}`}
+                    {item.isAvailable === false
+                      ? 'Unavailable'
+                      : cartQty > 0
+                        ? `Update · ₹${item.price * qty}`
+                        : `Add · ₹${item.price * qty}`}
                   </button>
                 </div>
               </div>

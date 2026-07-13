@@ -6,6 +6,7 @@ import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { publicAPI } from '../../api/dineflow'
 import { mapCustomerOrder } from '../../utils/mapCustomerMenuItem'
 import SavoriaOrderTracker from '../../components/savoria/SavoriaOrderTracker'
+import SavoriaOrderReviewPanel from '../../components/savoria/SavoriaOrderReviewPanel'
 
 export default function SavoriaOrderDetailsPage() {
   const { orderId } = useParams()
@@ -103,6 +104,8 @@ export default function SavoriaOrderDetailsPage() {
             <span className="text-[var(--sv-accent)]">₹{order.grandTotal}</span>
           </div>
         </div>
+
+        <SavoriaOrderReviewPanel order={order} />
 
         <button type="button" onClick={handleReorder} className="sv-btn-primary w-full py-3.5 inline-flex items-center justify-center gap-2">
           <FiRefreshCw size={16} />

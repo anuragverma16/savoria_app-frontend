@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { FiMail, FiPhone, FiSave, FiShield } from 'react-icons/fi'
+import { FiArrowLeft, FiGrid, FiMail, FiPhone, FiSave, FiShield } from 'react-icons/fi'
 import toast from 'react-hot-toast'
 import { authAPI } from '../../api/dineflow'
 import ThemeToggle from '../../components/dineflow/ThemeToggle'
@@ -10,6 +10,7 @@ import { useSavoriaGuestOptional } from '../../contexts/SavoriaGuestContext'
 import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 import { loadSavoriaSession, patchSavoriaSession } from '../../utils/savoriaGuestSession'
 import { getNavbarDashboardPath, isSuperAdminUser } from '../../utils/panelRole'
+import { hasIsolatedOrderCustomerAuth } from '../../utils/panelAuthPreserve'
 import { shouldOpenSuperAdminPanel } from '../../utils/superAdminPhone'
 import { setCredentials } from '../../store/slices/authSlice'
 import { formatCustomerFullName, isPlaceholderCustomerName } from '../../utils/customerDisplayName'
@@ -30,6 +31,7 @@ export default function AccountSettingsPage({ variant = 'default' }) {
   const guest = useSavoriaGuestOptional()
   const savoriaAuth = loadSavoriaSession()?.auth
   const isOrderPanel = location.pathname.startsWith('/order')
+  const isPlatform = variant === 'platform'
   const isGuestOnOrder = isOrderPanel && !guest?.isAuthenticated
 
   const [name, setName] = useState('')
@@ -37,13 +39,21 @@ export default function AccountSettingsPage({ variant = 'default' }) {
   const [phone, setPhone] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const hasAccount = Boolean(accessToken && user)
+  const isolatedCustomerAuth = isOrderPanel && hasIsolatedOrderCustomerAuth()
+  const hasAccount = Boolean(accessToken && user) && !isolatedCustomerAuth
   const displayRole = roleLabel(user, guest?.auth?.name || savoriaAuth?.name)
   const dashboardPath = user
-    ? getNavbarDashboardPath(user, memberships, phone)
+    ? getNavbarDashboardPath(user, memberships, isPlatform ? user.phone : undefined)
     : '/order/dashboard'
+  const backPath = isPlatform ? '/platform' : dashboardPath
 
   useEffect(() => {
+    if (isPlatform) {
+      setName(formatCustomerFullName(user?.name, ''))
+      setEmail(user?.email || '')
+      setPhone(user?.phone || '')
+      return
+    }
     const rawName = guest?.auth?.name || savoriaAuth?.name || user?.name || ''
     const sourceName = formatCustomerFullName(rawName, '')
     const sourceEmail = guest?.auth?.email || savoriaAuth?.email || user?.email || ''
@@ -51,7 +61,7 @@ export default function AccountSettingsPage({ variant = 'default' }) {
     setName(sourceName)
     setEmail(sourceEmail)
     setPhone(sourcePhone)
-  }, [user, guest?.auth, savoriaAuth])
+  }, [user, guest?.auth, savoriaAuth, isPlatform])
 
   const nameInitials = (name.trim() || phone || 'U')
     .split(/\s+/)
@@ -98,18 +108,20 @@ export default function AccountSettingsPage({ variant = 'default' }) {
           refreshToken,
           memberships: data.memberships || memberships,
         }))
-        const current = loadSavoriaSession() || {}
-        const nextAuth = {
-          ...(current.auth || savoriaAuth || {}),
-          name: data.user.name,
-          email: data.user.email,
-          phone: data.user.phone || phone,
-          verified: true,
-          verifiedAt: current.auth?.verifiedAt || Date.now(),
+        if (!isPlatform) {
+          const current = loadSavoriaSession() || {}
+          const nextAuth = {
+            ...(current.auth || savoriaAuth || {}),
+            name: data.user.name,
+            email: data.user.email,
+            phone: data.user.phone || phone,
+            verified: true,
+            verifiedAt: current.auth?.verifiedAt || Date.now(),
+          }
+          patchSavoriaSession({ auth: nextAuth, orderCustomerAuth: true })
+          guest?.completeAuth?.(nextAuth)
+          guest?.refreshSession?.()
         }
-        patchSavoriaSession({ auth: nextAuth, orderCustomerAuth: true })
-        guest?.completeAuth?.(nextAuth)
-        guest?.refreshSession?.()
         toast.success(isOrderPanel ? 'Name updated' : 'Profile updated')
       } else {
         const current = loadSavoriaSession() || {}
@@ -158,10 +170,24 @@ export default function AccountSettingsPage({ variant = 'default' }) {
     )
   }
 
-  const pageWrap = isOrderPanel ? 'sv-page max-w-lg mx-auto pb-8 px-4 py-4' : 'max-w-2xl mx-auto'
+  const pageWrap = isOrderPanel
+    ? 'sv-page max-w-lg mx-auto pb-8 px-4 py-4'
+    : isPlatform
+      ? 'max-w-2xl mx-auto'
+      : 'max-w-2xl mx-auto'
 
   return (
     <div className={pageWrap}>
+      {isPlatform && (
+        <Link
+          to="/platform"
+          className="inline-flex items-center gap-2 text-sm text-white/45 hover:text-orange-400 transition-colors mb-6"
+        >
+          <FiGrid size={16} />
+          Back to Dashboard
+        </Link>
+      )}
+
       {isOrderPanel ? (
         <div className="space-y-3 mb-6">
           <h1 className="sv-display font-bold text-lg text-[var(--sv-text)]">Profile</h1>
@@ -169,7 +195,9 @@ export default function AccountSettingsPage({ variant = 'default' }) {
         </div>
       ) : (
       <div className="mb-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400/80 mb-1">Account</p>
+        <p className="text-xs font-semibold uppercase tracking-widest text-orange-400/80 mb-1">
+          {isPlatform ? 'Super Admin' : 'Account'}
+        </p>
         <h1 className="text-2xl font-bold text-stone-50">Settings</h1>
         <p className="text-stone-400 text-sm mt-1">Edit your name and contact details</p>
       </div>
@@ -283,15 +311,18 @@ export default function AccountSettingsPage({ variant = 'default' }) {
             <FiSave size={14} />
             {saving ? 'Saving…' : 'Save changes'}
           </button>
-          <Link to={dashboardPath} className="df-btn-ghost text-sm">
-            Back to dashboard
-          </Link>
+          {!isPlatform && (
+            <Link to={backPath} className="df-btn-ghost text-sm inline-flex items-center gap-2">
+              <FiArrowLeft size={14} />
+              Back to dashboard
+            </Link>
+          )}
         </div>
           </>
         )}
       </form>
 
-      {isSuperAdminUser(user) && (
+      {isSuperAdminUser(user) && (isPlatform || !isOrderPanel) && (
         <section className={`${shellClass} mt-4`}>
           <h2 className="text-sm font-semibold text-stone-100 mb-3">Appearance</h2>
           <div className="flex items-center justify-between gap-4">

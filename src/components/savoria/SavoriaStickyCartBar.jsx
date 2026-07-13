@@ -23,7 +23,7 @@ export default function SavoriaStickyCartBar() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="sv-sticky-bar sv-sticky-bar--cart"
+        className="sv-sticky-bar sv-sticky-bar--cart md:hidden"
       >
         <div className="flex items-center justify-between gap-4 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 min-w-0">

@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { useSavoriaGuestOptional } from '../contexts/SavoriaGuestContext'
 import { getNavbarDashboardPath, navigateToProfileDashboard } from '../utils/panelRole'
+import { isPanelAccountUser } from '../utils/panelAuthPreserve'
 import { loadSavoriaSession } from '../utils/savoriaGuestSession'
 import { resolveCustomerDisplayName } from '../utils/customerDisplayName'
 
@@ -13,22 +14,26 @@ export function useAppAuth() {
   const { user, accessToken, memberships, refreshToken } = useSelector((s) => s.auth)
   const savoriaAuth = loadSavoriaSession()?.auth
 
+  const panelAccount = Boolean(accessToken && user && isPanelAccountUser(user))
+
   const isLoggedIn = Boolean(
     (accessToken && user)
-    || guestAuth?.isAuthenticated,
+    || (!panelAccount && guestAuth?.isAuthenticated),
   )
 
-  const displayName = resolveCustomerDisplayName(
-    guestAuth?.userDisplayName,
-    guestAuth?.auth?.name,
-    savoriaAuth?.name,
-    user?.name,
-  ) || (isLoggedIn ? 'Account' : 'Guest')
+  const displayName = panelAccount
+    ? resolveCustomerDisplayName(user?.name)
+    : resolveCustomerDisplayName(
+      guestAuth?.userDisplayName,
+      guestAuth?.auth?.name,
+      savoriaAuth?.name,
+      user?.name,
+    ) || (isLoggedIn ? 'Account' : 'Guest')
 
   const dashboardPath = getNavbarDashboardPath(
     user,
     memberships,
-    user?.phone || savoriaAuth?.phone,
+    panelAccount ? user?.phone : (user?.phone || savoriaAuth?.phone),
   ) || '/order/dashboard'
 
   const goToDashboard = () => {
@@ -37,7 +42,7 @@ export function useAppAuth() {
       dispatch,
       user,
       memberships,
-      phoneHint: user?.phone || savoriaAuth?.phone,
+      phoneHint: panelAccount ? user?.phone : (user?.phone || savoriaAuth?.phone),
       accessToken,
       refreshToken,
       openAuthModal: guestAuth?.openAuthModal,

@@ -83,7 +83,7 @@ export default function RestaurantLayout() {
 
   const handleLogout = () => {
     dispatch(clearTenant())
-    logoutGuest()
+    logoutGuest({ full: true })
     navigate('/', { replace: true })
   }
 

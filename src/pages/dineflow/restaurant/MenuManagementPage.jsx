@@ -10,6 +10,8 @@ import { restaurantAPI } from '../../../api/dineflow'
 import { ToggleButton, StockToggle } from '../../../components/dineflow/ToggleGroup'
 import { MENU_FORM_PORTION_UNITS, formatPortionSize } from '../../../utils/portionSize'
 import { INGREDIENT_CHIP_CLASS, INGREDIENT_CHIP_CLASS_SM } from '../../../data/menuCardGradients'
+import MenuReviewsAdminPanel from '../../../components/dineflow/MenuReviewsAdminPanel'
+import { formatMenuRating } from '../../../utils/menuRating'
 import toast from 'react-hot-toast'
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1512621776951-a41bdfeb9303?w=600&q=80&fit=crop'
@@ -445,7 +447,7 @@ export default function MenuManagementPage() {
         </div>
       )}
 
-      {/* Add / Edit modal */}
+      <MenuReviewsAdminPanel restaurantId={rid} />
       <AnimatePresence>
         {modal && (
           <motion.div
@@ -744,6 +746,7 @@ function MenuItemIngredientsBlock({ item, compact = false }) {
 
 function MenuCard({ item, onEdit, onDelete, onToggleStock }) {
   const img = item.image?.url || FALLBACK_IMG
+  const ratingInfo = formatMenuRating(item.rating)
   return (
     <div
       className={`rounded-2xl overflow-hidden border bg-slate-900/50 ${item.isAvailable ? 'border-white/10' : 'border-red-500/20 opacity-80'}`}
@@ -787,6 +790,13 @@ function MenuCard({ item, onEdit, onDelete, onToggleStock }) {
           <h3 className="font-semibold text-white truncate text-base">{item.name}</h3>
           <div className="flex items-center justify-between mt-1 gap-2 flex-wrap">
             <span className="text-emerald-400 font-bold text-lg">₹{item.price}</span>
+            {ratingInfo.hasReviews && (
+              <span className="text-xs text-amber-400 flex items-center gap-0.5 bg-black/40 px-2 py-0.5 rounded-md">
+                <FiStar size={11} fill="currentColor" />
+                {ratingInfo.label}
+                <span className="text-white/50">({ratingInfo.count})</span>
+              </span>
+            )}
             <span className="text-xs text-white/70 bg-black/40 px-2 py-0.5 rounded-md">
               Stock: {item.quantity ?? 0}
             </span>
@@ -822,6 +832,7 @@ function MenuCard({ item, onEdit, onDelete, onToggleStock }) {
 
 function MenuRow({ item, onEdit, onDelete, onToggleStock }) {
   const img = item.image?.url || FALLBACK_IMG
+  const ratingInfo = formatMenuRating(item.rating)
   return (
     <div className={`flex gap-4 p-4 rounded-2xl border bg-white/[0.03] ${item.isAvailable ? 'border-white/10' : 'border-red-500/20'}`}>
       <img src={img} alt="" className="w-20 h-20 rounded-xl object-cover shrink-0" />
@@ -840,6 +851,7 @@ function MenuRow({ item, onEdit, onDelete, onToggleStock }) {
               {item.prepTime}
               {formatPortionSize(item) ? ` · ${formatPortionSize(item)}` : ''}
               {' · '}Stock {item.quantity ?? 0}
+              {ratingInfo.hasReviews ? ` · ★ ${ratingInfo.label} (${ratingInfo.count})` : ''}
             </p>
           </div>
           <span className="text-emerald-400 font-bold shrink-0">₹{item.price}</span>

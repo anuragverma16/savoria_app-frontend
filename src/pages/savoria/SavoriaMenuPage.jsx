@@ -1,18 +1,23 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import gsap from 'gsap'
-import { FiMapPin } from 'react-icons/fi'
+import { FiMapPin, FiShoppingCart } from 'react-icons/fi'
 import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 import SavoriaSearchBar from '../../components/savoria/SavoriaSearchBar'
 import SavoriaCategoryFilter from '../../components/savoria/SavoriaCategoryFilter'
 import SavoriaFoodCard from '../../components/savoria/SavoriaFoodCard'
-import SavoriaFoodDetailModal from '../../components/savoria/SavoriaFoodDetailModal'
 import SavoriaStickyCartBar from '../../components/savoria/SavoriaStickyCartBar'
 import OrderPanelActionBar from '../../components/savoria/OrderPanelActionBar'
 import CustomerOrderSteps from '../../components/savoria/CustomerOrderSteps'
+import MenuPromoCoupons from '../../components/savoria/MenuPromoCoupons'
+import NewCustomerWelcomeOffer from '../../components/savoria/NewCustomerWelcomeOffer'
+import OrderMenuProfileMenu from '../../components/savoria/OrderMenuProfileMenu'
+import MenuReviewsSection from '../../components/savoria/MenuReviewsSection'
 import OptimizedImage from '../../components/OptimizedImage'
 import toast from 'react-hot-toast'
+import { menuItemId } from '../../store/slices/cartSlice'
 
 function MenuSkeleton() {
   return (
@@ -32,6 +37,7 @@ function MenuSkeleton() {
 
 export default function SavoriaMenuPage() {
   const mainRef = useRef(null)
+  const navigate = useNavigate()
   const {
     restaurant,
     menuItems,
@@ -40,13 +46,25 @@ export default function SavoriaMenuPage() {
     menuError,
     loadMenu,
     addToCart,
+    updateCartQty,
+    cart,
     isAuthenticated,
     userDisplayName,
+    totals,
+    paths,
+    promoCoupons,
+    appliedCoupon,
+    couponLoading,
+    applyCustomerCoupon,
+    removeCustomerCoupon,
+    welcomeEligible,
+    welcomePercent,
+    welcomeDiscount,
+    canUseCoupons,
   } = useSavoriaGuest()
   const { withQuery } = useOrderPanelQuery()
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
-  const [selectedItem, setSelectedItem] = useState(null)
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -74,12 +92,24 @@ export default function SavoriaMenuPage() {
     return () => ctx.revert()
   }, [filtered.length, menuLoading, category])
 
+  const getCartQty = (item) => {
+    const id = menuItemId(item)
+    return cart.find((line) => String(line.menuItem) === String(id))?.qty || 0
+  }
+
   const handleQuickAdd = (item) => {
     if (item.isAvailable === false) {
       toast.error(`${item.name} is currently unavailable`)
       return
     }
     if (addToCart(item, 1)) toast.success(`${item.name} added`)
+  }
+
+  const handleUpdateQty = (item, qty) => {
+    const id = menuItemId(item)
+    if (!id) return
+    if (qty <= 0) updateCartQty(id, 0)
+    else updateCartQty(id, qty)
   }
 
   return (
@@ -118,6 +148,21 @@ export default function SavoriaMenuPage() {
                 )}
               </div>
             </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {totals.itemCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate(withQuery(paths.cart))}
+                  className="hidden md:inline-flex sv-menu-cart-btn items-center gap-2"
+                >
+                  <FiShoppingCart size={16} />
+                  <span className="font-semibold">View Cart</span>
+                  <span className="sv-menu-cart-btn-total">₹{totals.total}</span>
+                  <span className="sv-menu-cart-btn-badge">{totals.itemCount}</span>
+                </button>
+              )}
+              <OrderMenuProfileMenu />
+            </div>
           </div>
 
           <CustomerOrderSteps step={1} />
@@ -127,6 +172,30 @@ export default function SavoriaMenuPage() {
       </div>
 
       <main ref={mainRef} className="px-4 md:px-6 py-5 max-w-4xl mx-auto">
+        {(welcomeEligible && !canUseCoupons) ? (
+          <div className="mb-5">
+            <NewCustomerWelcomeOffer
+              welcomePercent={welcomePercent}
+              welcomeDiscount={welcomeDiscount}
+              subtotal={totals.subtotal}
+            />
+          </div>
+        ) : (promoCoupons.length > 0 || appliedCoupon) ? (
+          <div className="mb-5">
+            <MenuPromoCoupons
+              coupons={promoCoupons}
+              subtotal={totals.subtotal}
+              appliedCoupon={appliedCoupon}
+              couponLoading={couponLoading}
+              onApply={applyCustomerCoupon}
+              onRemove={() => {
+                removeCustomerCoupon()
+                toast.success('Coupon removed')
+              }}
+            />
+          </div>
+        ) : null}
+
         <div className="mb-5">
           <SavoriaCategoryFilter active={category} onChange={setCategory} categories={categories} />
         </div>
@@ -151,22 +220,19 @@ export default function SavoriaMenuPage() {
                 <SavoriaFoodCard
                   key={item.id}
                   item={item}
-                  onSelect={setSelectedItem}
+                  cartQty={getCartQty(item)}
                   onQuickAdd={handleQuickAdd}
+                  onUpdateQty={handleUpdateQty}
                 />
               ))}
             </AnimatePresence>
           </div>
         )}
+
+        <MenuReviewsSection />
       </main>
 
       <SavoriaStickyCartBar />
-      <SavoriaFoodDetailModal
-        item={selectedItem}
-        open={Boolean(selectedItem)}
-        onClose={() => setSelectedItem(null)}
-        onAdd={addToCart}
-      />
     </div>
   )
 }

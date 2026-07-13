@@ -7,6 +7,7 @@ import { useOrderPanelQuery } from '../../hooks/useOrderPanelQuery'
 import SavoriaCartLineItem from '../../components/savoria/SavoriaCartLineItem'
 import OrderPanelActionBar from '../../components/savoria/OrderPanelActionBar'
 import CustomerOrderSteps from '../../components/savoria/CustomerOrderSteps'
+import NewCustomerWelcomeOffer from '../../components/savoria/NewCustomerWelcomeOffer'
 
 export default function SavoriaCartPage() {
   const navigate = useNavigate()
@@ -14,7 +15,7 @@ export default function SavoriaCartPage() {
   const { withQuery } = useOrderPanelQuery()
   const {
     cart, totals, updateCartQty, removeFromCart, restaurant, paths,
-    isAuthenticated,
+    isAuthenticated, welcomeEligible, welcomePercent, welcomeDiscount, canUseCoupons,
   } = useSavoriaGuest()
 
   const menuPath = withQuery(paths.menu)
@@ -87,6 +88,14 @@ export default function SavoriaCartPage() {
           </div>
         )}
 
+        {welcomeEligible && !canUseCoupons && (
+          <NewCustomerWelcomeOffer
+            welcomePercent={welcomePercent}
+            welcomeDiscount={welcomeDiscount}
+            subtotal={totals.subtotal}
+          />
+        )}
+
         <div className="sv-section-card">
           <p className="text-xs text-[var(--sv-text-muted)] uppercase tracking-wider">Ordering from</p>
           <p className="font-bold text-[var(--sv-text)]">{restaurant.name}</p>
@@ -115,7 +124,19 @@ export default function SavoriaCartPage() {
             <span className="text-[var(--sv-text-muted)]">GST</span>
             <span>₹{totals.gst}</span>
           </div>
-          {totals.discount > 0 && (
+          {totals.welcomeDiscount > 0 && (
+            <div className="flex justify-between text-sm text-[var(--sv-success)]">
+              <span>New customer ({welcomePercent}% off)</span>
+              <span>-₹{totals.welcomeDiscount}</span>
+            </div>
+          )}
+          {totals.couponDiscount > 0 && (
+            <div className="flex justify-between text-sm text-[var(--sv-success)]">
+              <span>Coupon discount</span>
+              <span>-₹{totals.couponDiscount}</span>
+            </div>
+          )}
+          {totals.discount > 0 && !totals.welcomeDiscount && !totals.couponDiscount && (
             <div className="flex justify-between text-sm text-[var(--sv-success)]">
               <span>Discount</span>
               <span>-₹{totals.discount}</span>

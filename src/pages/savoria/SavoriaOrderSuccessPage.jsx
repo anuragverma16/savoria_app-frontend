@@ -8,6 +8,7 @@ import { useSavoriaGuest } from '../../contexts/SavoriaGuestContext'
 import { publicAPI } from '../../api/dineflow'
 import { mapCustomerOrder } from '../../utils/mapCustomerMenuItem'
 import SavoriaOrderTracker from '../../components/savoria/SavoriaOrderTracker'
+import SavoriaOrderReviewPanel from '../../components/savoria/SavoriaOrderReviewPanel'
 import { downloadOrderInvoice } from '../../utils/generateInvoicePdf'
 
 export default function SavoriaOrderSuccessPage() {
@@ -147,6 +148,8 @@ export default function SavoriaOrderSuccessPage() {
             ))}
           </div>
         </div>
+
+        <SavoriaOrderReviewPanel order={order} />
       </div>
 
       <div className="space-y-3">

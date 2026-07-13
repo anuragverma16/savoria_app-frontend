@@ -1,5 +1,6 @@
 import { useRef, useEffect } from 'react'
 import { SAVORIA_CATEGORIES } from '../../data/savoriaMenuData'
+import SavoriaCategoryIcon from './SavoriaCategoryIcon'
 
 export default function SavoriaCategoryFilter({ active, onChange, categories }) {
   const scrollRef = useRef(null)
@@ -9,7 +10,7 @@ export default function SavoriaCategoryFilter({ active, onChange, categories }) 
     activeRef.current?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
   }, [active])
 
-  const pills = [{ id: 'all', name: 'All', icon: '✨' }, ...(categories?.length ? categories : SAVORIA_CATEGORIES)]
+  const pills = [{ id: 'all', name: 'All' }, ...(categories?.length ? categories : SAVORIA_CATEGORIES)]
 
   return (
     <div
@@ -25,8 +26,8 @@ export default function SavoriaCategoryFilter({ active, onChange, categories }) 
           onClick={() => onChange(cat.id)}
           className={`sv-category-pill ${active === cat.id ? 'active' : ''}`}
         >
-          <span className="mr-1">{cat.icon}</span>
-          {cat.name}
+          <SavoriaCategoryIcon size={16} />
+          <span>{cat.name}</span>
         </button>
       ))}
     </div>

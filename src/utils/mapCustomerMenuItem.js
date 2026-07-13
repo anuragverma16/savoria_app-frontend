@@ -1,3 +1,4 @@
+import { formatMenuRating } from './menuRating'
 import { itemPrice } from '../components/dineflow/MenuItemCard'
 
 function parseIngredients(raw) {
@@ -10,6 +11,8 @@ export function mapCustomerMenuItem(item) {
   const id = String(item?._id ?? item?.id ?? '')
   const categoryId = item?.category?._id || item?.category || 'uncategorized'
   const ingredients = parseIngredients(item?.ingredients)
+
+  const ratingInfo = formatMenuRating(item?.rating)
 
   return {
     id,
@@ -24,7 +27,10 @@ export function mapCustomerMenuItem(item) {
     isAvailable: item?.isAvailable !== false,
     tags: item?.tags || (item?.isVeg === false ? ['Non-Veg'] : item?.isVeg ? ['Veg'] : []),
     spicy: Boolean(item?.spicy),
-    rating: item?.rating?.average ?? item?.rating ?? '4.5',
+    rating: ratingInfo.label,
+    ratingAverage: ratingInfo.average,
+    ratingCount: ratingInfo.count,
+    hasReviews: ratingInfo.hasReviews,
     prepTime: item?.prepTime || item?.preparationTime || 15,
   }
 }

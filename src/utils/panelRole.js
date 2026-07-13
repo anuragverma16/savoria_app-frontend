@@ -406,11 +406,11 @@ export function isSuperAdminPreviewPanel(restaurant, panelId) {
   return getSuperAdminPreviewPanels(restaurant).includes(panelId)
 }
 
-export function getSuperAdminPreviewPath(restaurant, panelId = 'user') {
+export function getSuperAdminPreviewPath(restaurant, panelId = 'admin') {
   const rid = restaurant?._id
   if (!rid) return '/platform'
   const allowed = getSuperAdminPreviewPanels(restaurant)
-  const panel = allowed.includes(panelId) ? panelId : (allowed[0] || 'user')
+  const panel = allowed.includes(panelId) ? panelId : (allowed[0] || 'admin')
   const base = `/restaurant/${rid}`
   if (panel === 'user') return `${base}/user`
   if (panel === 'staff') return `${base}/staff`
