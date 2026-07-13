@@ -76,9 +76,8 @@ export default function RestaurantLayout() {
   useEffect(() => {
     if (!isSuperAdmin || !impersonating) return
     const fromUrl = panelFromPathname(location.pathname)
-    if (fromUrl && fromUrl !== viewAsPanel) {
-      dispatch(setViewAsPanel(fromUrl))
-    }
+    if (!fromUrl || fromUrl === viewAsPanel) return
+    dispatch(setViewAsPanel(fromUrl))
   }, [location.pathname, isSuperAdmin, impersonating, viewAsPanel, dispatch])
 
   const handleLogout = () => {

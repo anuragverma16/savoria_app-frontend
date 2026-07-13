@@ -16,7 +16,7 @@ import { showErrorToast, showSuccessToast } from '../../../utils/appToast'
 import PlatformProvisionModal from '../../../components/platform/PlatformProvisionModal'
 import PlatformUsersPanel from '../../../components/platform/PlatformUsersPanel'
 import { normalizeProvisionPhone } from '../../../utils/platformProvisionOtp'
-import { getSuperAdminPreviewPanels, getSuperAdminPreviewPath, grantProvisionPreview } from '../../../utils/panelRole'
+import { getSuperAdminPreviewPath, grantProvisionPreview } from '../../../utils/panelRole'
 
 const FOOD_COLORS = ['#f97316', '#ef4444', '#f59e0b', '#84cc16', '#fb923c', '#dc2626', '#eab308']
 
@@ -149,13 +149,13 @@ export default function SuperAdminDashboard() {
   }
 
   const enterRestaurant = (restaurant, panelId = 'admin') => {
-    const allowed = getSuperAdminPreviewPanels(restaurant)
-    const targetPanel = allowed.includes(panelId) ? panelId : (allowed[0] || 'user')
-    const panel = PANELS.find((p) => p.id === targetPanel) || PANELS.find((p) => p.id === 'user')
+    // Grant preview so RoleGate won't redirect to Customer when userCounts are stale/missing
+    grantProvisionPreview(restaurant._id, panelId)
+    const panel = PANELS.find((p) => p.id === panelId) || PANELS.find((p) => p.id === 'user')
     dispatch(setActiveRestaurant(restaurant))
     dispatch(setImpersonating(true))
-    dispatch(setViewAsPanel(targetPanel))
-    navigate(getSuperAdminPreviewPath(restaurant, targetPanel))
+    dispatch(setViewAsPanel(panelId))
+    navigate(getSuperAdminPreviewPath(restaurant, panelId))
     toast.success(`${restaurant.name} — ${panel?.label || 'Customer'}`)
   }
 

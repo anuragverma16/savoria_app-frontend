@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { platformAPI } from '../api/dineflow'
@@ -23,16 +23,22 @@ export default function RestaurantBootstrap({ children }) {
   const { user, memberships } = useSelector((s) => s.auth)
   const tenant = useSelector((s) => s.tenant)
   const [ready, setReady] = useState(false)
+  const bootedForRef = useRef('')
 
   useEffect(() => {
     let cancelled = false
 
     const finish = () => {
-      if (!cancelled) setReady(true)
+      if (!cancelled) {
+        bootedForRef.current = String(restaurantId || '')
+        setReady(true)
+      }
     }
 
     async function sync() {
-      setReady(false)
+      const ridKey = String(restaurantId || '')
+      const showBlockingLoad = bootedForRef.current !== ridKey
+      if (showBlockingLoad) setReady(false)
 
       if (!restaurantId) {
         finish()
@@ -60,19 +66,23 @@ export default function RestaurantBootstrap({ children }) {
       }
 
       const currentRid = activeRestaurantId(tenant.activeRestaurant)
-      if (currentRid === String(restaurantId)) {
+      const hasUserCounts = tenant.activeRestaurant?.userCounts != null
+      const sameRestaurant = currentRid === String(restaurantId)
+
+      if (sameRestaurant && hasUserCounts) {
         if (shouldBlockSuspendedRestaurant(user, tenant.activeRestaurant, tenant)) {
           navigate('/restaurant-suspended', { replace: true, state: { restaurantName: tenant.activeRestaurant?.name } })
           finish()
           return
         }
+        if (isSuperAdmin && !tenant.impersonating) dispatch(setImpersonating(true))
         finish()
         return
       }
 
       const fromMembership = memberships?.find((m) => restaurantIdOf(m) === String(restaurantId))
       const fromRestaurant = normalizeRestaurant(fromMembership?.restaurant)
-      if (fromRestaurant) {
+      if (fromRestaurant && !isSuperAdmin) {
         if (shouldBlockSuspendedRestaurant(user, fromRestaurant, tenant)) {
           navigate('/restaurant-suspended', { replace: true, state: { restaurantName: fromRestaurant.name } })
           finish()
@@ -84,7 +94,7 @@ export default function RestaurantBootstrap({ children }) {
       }
 
       const userRestaurant = normalizeRestaurant(user?.restaurant)
-      if (userRestaurant && String(userRestaurant._id) === String(restaurantId)) {
+      if (userRestaurant && String(userRestaurant._id) === String(restaurantId) && !isSuperAdmin) {
         if (shouldBlockSuspendedRestaurant(user, userRestaurant, tenant)) {
           navigate('/restaurant-suspended', { replace: true, state: { restaurantName: userRestaurant.name } })
           finish()
@@ -99,15 +109,23 @@ export default function RestaurantBootstrap({ children }) {
         if (!tenant.impersonating) dispatch(setImpersonating(true))
         try {
           const { data } = await platformAPI.restaurants()
+          if (cancelled) return
           const restaurant = data.restaurants?.find((r) => String(r._id) === String(restaurantId))
           if (restaurant) {
-            dispatch(setActiveRestaurant(restaurant))
-          } else {
+            const needsUpdate = !sameRestaurant || !hasUserCounts
+            if (needsUpdate) dispatch(setActiveRestaurant(restaurant))
+          } else if (!(sameRestaurant && tenant.activeRestaurant)) {
             navigate('/platform', { replace: true })
             finish()
             return
           }
-        } catch { /* ignore */ }
+        } catch {
+          if (!sameRestaurant || !tenant.activeRestaurant) {
+            navigate('/platform', { replace: true })
+            finish()
+            return
+          }
+        }
       } else {
         const restaurant = resolveRestaurantForId({
           memberships,
@@ -127,7 +145,7 @@ export default function RestaurantBootstrap({ children }) {
 
     sync()
     return () => { cancelled = true }
-  }, [restaurantId, tenant.activeRestaurant, tenant.impersonating, memberships, user, dispatch, navigate])
+  }, [restaurantId, user?._id, memberships, dispatch, navigate])
 
   if (!ready) {
     return (

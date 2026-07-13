@@ -4,7 +4,7 @@ import { FiShield, FiGrid, FiUsers, FiUser } from 'react-icons/fi'
 import { setImpersonating, setViewAsPanel } from '../store/slices/tenantSlice'
 import { ToggleButton, ToggleGroup } from './dineflow/ToggleGroup'
 import AnimatedButton from './dineflow/AnimatedButton'
-import { getSuperAdminPreviewPanels, isSuperAdminUser, getEffectivePanel } from '../utils/panelRole'
+import { getSuperAdminPreviewPanels, isSuperAdminUser, getEffectivePanel, grantProvisionPreview } from '../utils/panelRole'
 
 const PANEL_META = {
   admin: { id: 'admin', label: 'Admin', icon: FiGrid, path: 'admin', color: 'orange' },
@@ -33,6 +33,7 @@ export default function SuperAdminPanelBar() {
   })
 
   const goToPanel = (panel) => {
+    grantProvisionPreview(rid, panel.id)
     dispatch(setImpersonating(true))
     dispatch(setViewAsPanel(panel.id))
     navigate(`${base}/${panel.path}`)

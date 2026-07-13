@@ -409,8 +409,11 @@ export function isSuperAdminPreviewPanel(restaurant, panelId) {
 export function getSuperAdminPreviewPath(restaurant, panelId = 'admin') {
   const rid = restaurant?._id
   if (!rid) return '/platform'
+  const grant = getProvisionPreviewGrant(rid)
   const allowed = getSuperAdminPreviewPanels(restaurant)
-  const panel = allowed.includes(panelId) ? panelId : (allowed[0] || 'admin')
+  const panel = allowed.includes(panelId)
+    ? panelId
+    : (grant === panelId ? panelId : (allowed[0] || panelId))
   const base = `/restaurant/${rid}`
   if (panel === 'user') return `${base}/user`
   if (panel === 'staff') return `${base}/staff`

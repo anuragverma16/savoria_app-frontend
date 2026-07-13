@@ -47,7 +47,7 @@ import CustomerTableGuard from './components/CustomerTableGuard'
 import StaffDashboard from './pages/dineflow/restaurant/StaffDashboard'
 import StaffTablesPage from './pages/dineflow/restaurant/StaffTablesPage'
 import StaffMenuStockPage from './pages/dineflow/restaurant/StaffMenuStockPage'
-import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, isAccountSuperAdmin, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath } from './utils/panelRole'
+import { getEffectivePanel, getDefaultPath, hasRestaurantAccess, activeRestaurantId, isSuperAdminUser, isAccountSuperAdmin, shouldBlockSuspendedRestaurant, getSuperAdminPreviewPanels, getSuperAdminPreviewPath, getProvisionPreviewGrant, panelFromPathname } from './utils/panelRole'
 import { resolveAuthGateState, isSkipAuthModal } from './utils/authEntry'
 import { SavoriaGuestProvider } from './contexts/SavoriaGuestContext'
 import GuestOrderPanelGuard from './components/GuestOrderPanelGuard'
@@ -135,8 +135,13 @@ function RoleGate({ allowed, children }) {
   const isSuperAdmin = user?.platformRole === 'superadmin' || user?.role === 'superadmin'
 
   if (isSuperAdmin && impersonating) {
+    const urlPanel = panelFromPathname(location.pathname)
+    const grant = getProvisionPreviewGrant(restaurantId)
     const previewPanels = getSuperAdminPreviewPanels(activeRestaurant)
-    if (!previewPanels.includes(panel)) {
+    const panelAllowed = previewPanels.includes(panel)
+      || (grant && grant === panel)
+      || (urlPanel && grant === urlPanel && panel === urlPanel)
+    if (!panelAllowed) {
       return <Navigate to={getSuperAdminPreviewPath(activeRestaurant, previewPanels[0] || 'user')} replace />
     }
     if (!allowed.includes(panel)) {
